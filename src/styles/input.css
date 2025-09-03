@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .glass-effect {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-br from-gradient-start to-gradient-end;
+  }
+
+  .apple-music-gradient {
+    @apply bg-gradient-to-r from-apple-red to-apple-pink;
+  }
+
+  .toggle-switch {
+    @apply relative w-11 h-6 bg-white/30 rounded-full cursor-pointer transition-colors duration-300;
+  }
+
+  .toggle-switch.active {
+    @apply bg-green-500;
+  }
+
+  .toggle-switch::after {
+    @apply absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-300 content-[''];
+  }
+
+  .toggle-switch.active::after {
+    @apply transform translate-x-5;
+  }
+
+  .music-pulse {
+    @apply animate-pulse-slow;
+  }
+
+  .bounce-icon {
+    @apply animate-bounce-gentle;
+  }
+}

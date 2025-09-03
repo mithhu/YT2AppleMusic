@@ -1,0 +1,60 @@
+---
+description: React and TypeScript development standards for popup UI
+globs:
+  - "src/popup/**/*.tsx"
+  - "src/components/**/*.tsx"
+alwaysApply: true
+---
+
+# React + TypeScript Rules
+
+## Component Standards
+
+- Use functional components only
+- Define props interfaces for all components
+- Use React.memo for performance-critical components
+- Extract complex logic into custom hooks
+- Follow hooks rules (no conditional hooks)
+
+## TypeScript Standards
+
+- Use strict TypeScript with explicit types
+- Prefer interfaces over type aliases for object shapes
+- Use string enums for constants
+- Always handle async/await with proper error handling
+
+## Styling
+
+- Use Tailwind CSS classes primarily
+- Use the established color palette (apple-red, apple-pink, etc.)
+- Ensure responsive design for popup constraints
+- Use glass-effect and gradient classes from existing styles
+
+## Component Pattern
+
+```typescript
+interface ComponentProps {
+  title: string;
+  onAction: () => void;
+  isLoading?: boolean;
+}
+
+export const Component: React.FC<ComponentProps> = React.memo(
+  ({ title, onAction, isLoading = false }) => {
+    return (
+      <div className="glass-effect p-4">
+        <h2 className="text-apple-red">{title}</h2>
+        <button
+          onClick={onAction}
+          disabled={isLoading}
+          className="bg-gradient-to-r from-apple-pink to-apple-red"
+        >
+          {isLoading ? "Loading..." : "Action"}
+        </button>
+      </div>
+    );
+  },
+);
+
+Component.displayName = "Component";
+```

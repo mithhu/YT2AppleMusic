@@ -1,0 +1,57 @@
+---
+description: YouTube content script and music detection rules
+globs:
+  - "src/content/**/*.ts"
+  - "src/utils/appleMusicUtils.ts"
+alwaysApply: true
+---
+
+# YouTube Detection & Apple Music Integration
+
+## YouTube Detection Rules
+- Clear `currentVideoData = null` on URL changes to prevent stale data
+- Use MutationObserver for SPA navigation detection
+- Debounce video detection to prevent spam
+- Always check DOM elements exist before accessing
+
+## Apple Music Integration
+- Use iTunes API for song ID, but create Apple Music URLs
+- Aggressive title cleaning: remove everything from first `(` or `[`
+- Optimize search queries for better matching
+
+## Safe DOM Access Pattern
+```typescript
+private async waitForElement(selector: string, timeout = 5000): Promise<Element> {
+  return new Promise((resolve, reject) => {
+    const element = document.querySelector(selector);
+    if (element) {
+      resolve(element);
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve(element);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Element ${selector} not found`));
+    }, timeout);
+  });
+}
+```
+
+## Title Optimization Pattern
+```typescript
+// Aggressive cleaning for better matching
+const optimizedQuery = title
+  .replace(/\s*\(.*$/gi, "") // Remove everything from first ( onwards
+  .replace(/\s*\[.*$/gi, "") // Remove everything from first [ onwards
+  .replace(/\s*(official\s+)?(music\s+)?video\s*/gi, "")
+  .replace(/\s*(ft\.?|feat\.?|featuring)\s+.*/gi, "");
+```

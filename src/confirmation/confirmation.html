@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Apple Music Match</title>
+    <link rel="stylesheet" href="../styles/input.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .confirmation-container {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 100%;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .icon {
+        width: 40px;
+        height: 40px;
+        background: #fa233b;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        color: white;
+        font-size: 18px;
+      }
+
+      .title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .content {
+        margin-bottom: 24px;
+      }
+
+      .video-info,
+      .match-info {
+        margin-bottom: 16px;
+      }
+
+      .label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+
+      .value {
+        font-size: 14px;
+        color: #1f2937;
+        background: #f9fafb;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+      }
+
+      .match-info .value {
+        background: #fef2f2;
+        border-color: #fecaca;
+        font-weight: 500;
+      }
+
+      .question {
+        font-size: 12px;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .btn-confirm {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-confirm:hover {
+        background: #059669;
+      }
+
+      .btn-reject {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn-reject:hover {
+        background: #dc2626;
+      }
+
+      .btn-skip {
+        background: #f3f4f6;
+        color: #6b7280;
+        flex: 0 0 auto;
+        padding: 10px 12px;
+      }
+
+      .btn-skip:hover {
+        background: #e5e7eb;
+        color: #4b5563;
+      }
+
+      .loading {
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="confirmation-container">
+      <div class="header">
+        <div class="icon">🎵</div>
+        <div class="title">Confirm Apple Music Match</div>
+      </div>
+
+      <div class="content">
+        <div class="video-info">
+          <div class="label">YouTube Video:</div>
+          <div class="value" id="youtube-title">Loading...</div>
+        </div>
+
+        <div class="match-info">
+          <div class="label">Found on Apple Music:</div>
+          <div class="value" id="apple-music-match">Loading...</div>
+        </div>
+
+        <div class="question">
+          Is this the correct match? We'll remember your choice for faster
+          access next time.
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="btn btn-confirm" id="confirm-btn">✓ Yes, Correct</button>
+        <button class="btn btn-reject" id="reject-btn">✗ No, Wrong</button>
+        <button class="btn btn-skip" id="skip-btn">Skip</button>
+      </div>
+    </div>
+
+    <script src="confirmation.js"></script>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+---
+description: Caching system and confirmation UI rules
+globs:
+  - "src/utils/cacheUtils.ts"
+  - "src/background/background.ts"
+  - "src/popup/PopupApp.tsx"
+alwaysApply: true
+---
+
+# Caching & Confirmation System
+
+## Cache Confirmation Rules
+- Store confirmation data **immediately** - no delays
+- Show confirmation UI **directly in popup** - no separate windows
+- Use `currentPendingConfirmation` pattern for single confirmation
+- Clear confirmation data after user action
+
+## Cache Management
+- Use `chrome.storage.local` for persistence
+- Require user confirmation before saving matches
+- Provide cache statistics and export functionality
+- Check cache first before making API calls
+
+## Cache Confirmation Pattern
+```typescript
+// Return object with confirmation data for background script to handle
+return {
+  url: appleMusicUrl,
+  needsConfirmation: true,
+  confirmationData: {
+    youtubeId,
+    youtubeTitle: `${artist} - ${songTitle}`,
+    appleMusicArtist: song.artistName,
+    appleMusicSong: song.trackName,
+  },
+  isCached: false,
+};
+```
+
+## Background Script Confirmation Handling
+```typescript
+// Handle confirmation if needed
+if (result.needsConfirmation && result.confirmationData) {
+  console.log("🤔 Song needs confirmation, storing data immediately");
+  // Store confirmation immediately - no delays needed
+  this.currentPendingConfirmation = result.confirmationData;
+  console.log("🤔 Stored pending confirmation:", this.currentPendingConfirmation);
+}
+```
+
+## Popup Confirmation UI
+- Display pending confirmation directly in popup
+- Show YouTube vs Apple Music comparison
+- Provide "Yes, Correct" / "No, Wrong" buttons
+- Update cache based on user decision

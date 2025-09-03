@@ -1,0 +1,68 @@
+---
+description: Core Chrome extension development rules for YouTube to Apple Music Bridge
+globs:
+  - "src/**/*.ts"
+  - "src/**/*.tsx" 
+  - "manifest.json"
+alwaysApply: true
+---
+
+# Chrome Extension Core Rules
+
+## Critical Rules (NEVER BREAK)
+
+### 1. User Control Over Chrome Prompts
+- **NEVER** automatically close Chrome alerts/prompts
+- **NEVER** use setTimeout to close tabs
+- **NEVER** implement fallback schemes that auto-trigger
+- User must have complete control over "Open Apple Music?" prompts
+
+### 2. Apple Music URL Schemes
+- Use **ONLY** `itmss://music.apple.com/us/song/${songId}` for direct songs
+- Extract song ID cleanly: `directLink.split("/song/")[1].split("?")[0]`
+- Fallback to search only when direct song fails
+
+### 3. Message Passing
+- Use typed interfaces from `src/types/index.ts`
+- Handle `chrome.runtime.lastError` in all Chrome API calls
+- Return objects from utils, not direct Chrome messages
+- Background script orchestrates all Chrome API interactions
+
+### 4. Error Handling
+- Handle "Extension context invalidated" errors gracefully
+- Always provide fallbacks for AI features
+- Never expose internal errors to users
+
+## Code Patterns
+
+### Safe Chrome API Usage
+```typescript
+try {
+  await chrome.runtime.sendMessage(message);
+} catch (error) {
+  if (error.message.includes("Extension context invalidated")) {
+    console.log("🔄 Extension reloaded - please refresh YouTube page");
+    return;
+  }
+  throw error;
+}
+```
+
+### User Control Pattern
+```typescript
+// ✅ CORRECT: Let user decide
+static async openDirectSong(musicData: MusicData) {
+  const schemes = [`itmss://music.apple.com/us/song/${songId}`];
+  
+  for (const scheme of schemes) {
+    const tab = await chrome.tabs.create({ url: scheme, active: true });
+    console.log(`🎯 Opened ${scheme} - user has full control`);
+    return true; // Success - let user handle the prompt
+  }
+}
+
+// ❌ WRONG: Automatic closing
+setTimeout(() => {
+  chrome.tabs.remove(tab.id!); // NEVER DO THIS
+}, 500);
+```

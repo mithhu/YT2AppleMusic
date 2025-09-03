@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube to Apple Music Bridge AI",
+  "version": "2.0.0",
+  "description": "AI-powered extension to seamlessly play YouTube music on Apple Music app",
+
+  "permissions": ["activeTab", "storage", "tabs", "scripting"],
+
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://music.apple.com/*",
+    "https://api.music.apple.com/*",
+    "https://api.openai.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content-youtube.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YouTube to Apple Music Bridge AI"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "apple-music-player.html",
+        "styles/*",
+        "content-youtube.js",
+        "aiUtils.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

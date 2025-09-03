@@ -1,0 +1,366 @@
+# YouTube to Apple Music Bridge - Cursor Rules
+
+You are an expert TypeScript/React developer working on a Chrome extension that bridges YouTube music discovery to Apple Music playback.
+
+## Project Context
+
+This is a Chrome extension that:
+
+- Detects music videos on YouTube using content scripts
+- Uses AI (OpenAI) to enhance song matching accuracy
+- Opens songs directly in Apple Music app (native) or web player
+- Built with React + TypeScript + Tailwind CSS + Vite
+- Features intelligent caching system with user confirmation
+- Provides seamless YouTube-to-Apple Music workflow
+
+## Code Style & Standards
+
+### TypeScript
+
+- Use strict TypeScript with explicit types
+- Prefer interfaces over type aliases for object shapes
+- Use string enums for constants
+- Always handle async/await with proper error handling
+- Use generic constraints appropriately
+
+### React
+
+- Use functional components only
+- Define props interfaces for all components
+- Use React.memo for performance-critical components
+- Extract complex logic into custom hooks
+- Follow hooks rules (no conditional hooks)
+
+### Styling
+
+- Use Tailwind CSS classes primarily
+- Create semantic component classes in CSS when needed
+- Use the established color palette (apple-red, apple-pink, etc.)
+- Ensure responsive design for popup constraints
+- Use glass-effect and gradient classes from existing styles
+
+### Extension-Specific
+
+- Always check DOM elements exist before accessing
+- Use proper message passing between scripts
+- Handle Chrome API errors gracefully
+- Clean up event listeners and observers
+- Use debouncing for frequent operations
+- **NEVER automatically close Chrome alerts/prompts - let user decide**
+
+## Architecture Patterns
+
+### File Organization
+
+```
+src/
+├── popup/           # React popup UI
+├── background/      # Service worker
+├── content/         # Content scripts
+├── utils/           # Shared utilities
+├── types/           # TypeScript definitions
+└── styles/          # Tailwind CSS
+```
+
+### Message Passing
+
+- Use typed message interfaces from `src/types/index.ts`
+- Always handle message errors with try/catch
+- Provide user-friendly error messages
+- Use centralized message routing in background script
+
+### Error Handling
+
+- Always provide fallbacks for AI features
+- Log errors with context for debugging
+- Show user-friendly status messages
+- Never expose internal errors to users
+
+## Key Components
+
+### YouTube Detection (`src/content/youtube-detector.ts`)
+
+- Monitors YouTube pages for music videos
+- Uses MutationObserver for SPA navigation
+- Extracts metadata (title, artist, channel)
+- Calculates confidence scores for matches
+- **CRITICAL**: Clear `currentVideoData` on URL changes to prevent stale data
+
+### Apple Music Integration (`src/utils/appleMusicUtils.ts`)
+
+- Tries native app first, falls back to web
+- Uses URL schemes: `music://` and `itmss://`
+- Handles platform detection (macOS/iOS)
+- Optimizes search queries
+- **CRITICAL**: NEVER automatically close tabs or alerts - user has full control
+- **CRITICAL**: Use ONLY `itmss://` scheme to prevent prompt auto-closing
+
+### AI Enhancement (`src/utils/aiUtils.ts`)
+
+- Optional OpenAI integration for better matching
+- Always has rule-based fallback
+- Handles API errors gracefully
+- Uses structured prompts for consistency
+
+### Background Service (`src/background/background.ts`)
+
+- Centralized message handling
+- Settings management
+- Tab tracking for Apple Music
+- Notification system
+- **CRITICAL**: Store confirmation data immediately - no delays
+
+### Caching System (`src/utils/cacheUtils.ts`)
+
+- Persistent YouTube ID to Apple Music song ID mapping
+- Uses `chrome.storage.local` for persistence
+- Requires user confirmation before saving matches
+- Provides cache statistics and export functionality
+
+## Development Workflow
+
+### Building
+
+- Use `npm run dev` for development with watching
+- Use `npm run build` for production builds
+- Load `dist/` folder in Chrome extensions
+- Test on different YouTube video types
+
+### Code Quality
+
+- Run `npm run type-check` for TypeScript errors
+- Run `npm run lint` for code quality
+- Follow existing patterns and conventions
+- Write clear commit messages
+
+### Testing
+
+- Test on official music videos, covers, live performances
+- Test AI enhancement with and without API key
+- Test native app opening on macOS
+- Test error scenarios (network issues, invalid videos)
+- **CRITICAL**: Test that Chrome alerts never close automatically
+
+## Common Patterns
+
+### Safe DOM Access
+
+```typescript
+private async waitForElement(selector: string, timeout = 5000): Promise<Element> {
+  return new Promise((resolve, reject) => {
+    const element = document.querySelector(selector);
+    if (element) {
+      resolve(element);
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve(element);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Element ${selector} not found`));
+    }, timeout);
+  });
+}
+```
+
+### Message Handling
+
+```typescript
+chrome.runtime.onMessage.addListener(
+  (message: ExtensionMessage, sender, sendResponse) => {
+    switch (message.type) {
+      case "MUSIC_DETECTED":
+        this.handleMusicDetected(message.data);
+        sendResponse({ success: true });
+        break;
+      default:
+        sendResponse({ success: false, error: "Unknown message type" });
+    }
+    return true; // Keep channel open for async
+  },
+);
+```
+
+### AI with Fallback
+
+```typescript
+static async enhanceSearchWithAI(musicData: MusicData, apiKey?: string): Promise<AISearchResponse> {
+  if (!apiKey) {
+    return this.enhanceSearchRuleBased(musicData);
+  }
+
+  try {
+    return await this.callOpenAI(musicData, apiKey);
+  } catch (error) {
+    console.error('AI enhancement failed, falling back:', error);
+    return this.enhanceSearchRuleBased(musicData);
+  }
+}
+```
+
+### User Control Pattern (CRITICAL)
+
+```typescript
+// ✅ CORRECT: Let user decide
+static async openDirectSong(musicData: MusicData) {
+  const schemes = [`itmss://music.apple.com/us/song/${songId}`];
+
+  for (const scheme of schemes) {
+    const tab = await chrome.tabs.create({ url: scheme, active: true });
+    console.log(`🎯 Opened ${scheme} - user has full control`);
+    return true; // Success - let user handle the prompt
+  }
+}
+
+// ❌ WRONG: Automatic closing
+setTimeout(() => {
+  chrome.tabs.remove(tab.id!); // NEVER DO THIS
+}, 500);
+```
+
+### Cache Confirmation Pattern
+
+```typescript
+// Return object with confirmation data for background script to handle
+return {
+  url: appleMusicUrl,
+  needsConfirmation: true,
+  confirmationData: {
+    youtubeId,
+    youtubeTitle: `${artist} - ${songTitle}`,
+    appleMusicArtist: song.artistName,
+    appleMusicSong: song.trackName,
+  },
+  isCached: false,
+};
+```
+
+## Performance Guidelines
+
+- Use debouncing for frequent operations (video detection)
+- Clean up observers and listeners on component unmount
+- Minimize memory usage in background scripts
+- Use React.memo for expensive components
+- Avoid blocking the main thread
+
+## Security & Privacy
+
+- Never hardcode API keys
+- Process data locally when possible
+- Don't collect user behavior data
+- Use chrome.storage.sync for settings
+- Validate all external inputs
+
+## User Experience
+
+- Provide clear status messages
+- Show confidence scores for transparency
+- Allow manual override of automatic behavior
+- Graceful degradation when features fail
+- Respect user preferences and settings
+- **CRITICAL**: Never interfere with user choice on Chrome prompts
+
+## Critical Rules (NEVER BREAK THESE)
+
+### 1. User Control Over Chrome Prompts
+
+- **NEVER** automatically close Chrome alerts/prompts
+- **NEVER** use setTimeout to close tabs
+- **NEVER** implement fallback schemes that auto-trigger
+- User must have complete control over "Open Apple Music?" prompts
+
+### 2. Cache Confirmation System
+
+- Store confirmation data **immediately** - no delays
+- Show confirmation UI **directly in popup** - no separate windows
+- Use `currentPendingConfirmation` pattern for single confirmation
+- Clear confirmation data after user action
+
+### 3. YouTube Detection Reliability
+
+- Clear `currentVideoData = null` on URL changes
+- Handle "Extension context invalidated" errors gracefully
+- Use MutationObserver for SPA navigation detection
+- Debounce video detection to prevent spam
+
+### 4. Apple Music URL Schemes
+
+- Use **ONLY** `itmss://music.apple.com/us/song/${songId}` for direct songs
+- Extract song ID cleanly: `directLink.split("/song/")[1].split("?")[0]`
+- Fallback to search only when direct song fails
+- Aggressive title cleaning: remove everything from first `(` or `[`
+
+### 5. Message Passing Architecture
+
+- Use typed interfaces from `src/types/index.ts`
+- Handle `chrome.runtime.lastError` in all Chrome API calls
+- Return objects from utils, not direct Chrome messages
+- Background script orchestrates all Chrome API interactions
+
+## When Adding Features
+
+1. Update TypeScript types first
+2. Follow existing architectural patterns
+3. Add proper error handling
+4. Update documentation
+5. Test thoroughly across different scenarios
+6. Consider performance impact
+7. Maintain backward compatibility
+8. **NEVER** add automatic closing logic
+
+## Common Issues & Solutions
+
+- **Build errors**: Check ES module syntax, ensure proper imports
+- **Extension loading**: Verify manifest paths match build output
+- **Message passing**: Always handle chrome.runtime.lastError
+- **DOM access**: Use waitForElement pattern for dynamic content
+- **API failures**: Always provide fallbacks and user feedback
+- **Chrome prompts closing**: Remove ALL automatic closing logic
+- **Stale video data**: Clear cache on URL changes
+
+## Project-Specific Patterns
+
+### iTunes API Integration
+
+```typescript
+// Use iTunes API for song ID, but create Apple Music URLs
+const iTunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(
+  query,
+)}&media=music&entity=song&limit=1`;
+const appleMusicUrl = `https://music.apple.com/us/song/${song.trackId}`;
+```
+
+### Title Optimization
+
+```typescript
+// Aggressive cleaning for better matching
+const optimizedQuery = title
+  .replace(/\s*\(.*$/gi, "") // Remove everything from first (
+  .replace(/\s*\[.*$/gi, "") // Remove everything from first [
+  .replace(/\s*(official\s+)?(music\s+)?video\s*/gi, "")
+  .replace(/\s*(ft\.?|feat\.?|featuring)\s+.*/gi, "");
+```
+
+### Extension Context Error Handling
+
+```typescript
+try {
+  await chrome.runtime.sendMessage(message);
+} catch (error) {
+  if (error.message.includes("Extension context invalidated")) {
+    console.log("🔄 Extension reloaded - please refresh YouTube page");
+    return;
+  }
+  throw error;
+}
+```
+
+Remember: Prioritize user privacy, performance, and reliability. When in doubt, choose the safer, more conservative approach that gives users maximum control.

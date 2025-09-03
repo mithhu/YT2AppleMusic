@@ -1,0 +1,42 @@
+---
+description: AI enhancement and fallback patterns
+globs:
+  - "src/utils/aiUtils.ts"
+alwaysApply: false
+---
+
+# AI Integration Rules
+
+## AI Enhancement Patterns
+- Optional OpenAI integration for better matching
+- Always has rule-based fallback
+- Handle API errors gracefully
+- Use structured prompts for consistency
+
+## AI with Fallback Pattern
+```typescript
+static async enhanceSearchWithAI(musicData: MusicData, apiKey?: string): Promise<AISearchResponse> {
+  if (!apiKey) {
+    return this.enhanceSearchRuleBased(musicData);
+  }
+
+  try {
+    return await this.callOpenAI(musicData, apiKey);
+  } catch (error) {
+    console.error('AI enhancement failed, falling back:', error);
+    return this.enhanceSearchRuleBased(musicData);
+  }
+}
+```
+
+## Security & Privacy
+- Never hardcode API keys
+- Process data locally when possible
+- Don't collect user behavior data
+- Validate all external inputs
+
+## API Error Handling
+- Always provide fallbacks
+- Log errors with context for debugging
+- Show user-friendly status messages
+- Never expose internal errors to users
