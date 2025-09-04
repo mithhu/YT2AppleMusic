@@ -4,6 +4,7 @@ import {
   AppleMusicLinkResult,
 } from "../types";
 import { CacheUtils } from "./cacheUtils";
+import { CommunityDatabase } from "./communityDb";
 
 export class AppleMusicUtils {
   private static readonly APPLE_MUSIC_API_BASE =
@@ -228,6 +229,42 @@ export class AppleMusicUtils {
             isCached: true, // Flag to indicate this is from cache
           };
         }
+
+        // Check community database if not in local cache
+        const communityMapping = await CommunityDatabase.findMapping(youtubeId);
+        if (communityMapping) {
+          const communityUrl = `${this.APPLE_MUSIC_WEB_BASE}/us/song/${communityMapping.apple_music_id}`;
+          console.log(`🌐 Using community database mapping: ${communityUrl}`);
+          console.log(
+            `📊 Community confidence: ${(
+              communityMapping.confidence_score * 100
+            ).toFixed(1)}%`,
+          );
+
+          // Add to local cache as confirmed (since it's from community DB)
+          await CacheUtils.addCacheEntry(
+            youtubeId,
+            communityMapping.apple_music_id,
+            {
+              artist,
+              songTitle,
+              videoId: youtubeId,
+              title: `${artist} - ${songTitle}`,
+              channel: "",
+              url: "",
+              timestamp: Date.now(),
+              confidence: communityMapping.confidence_score,
+            },
+          );
+          await CacheUtils.confirmCacheEntry(youtubeId);
+
+          return {
+            url: communityUrl,
+            needsConfirmation: false,
+            confirmationData: null,
+            isCached: false, // From community, not local cache
+          };
+        }
       }
 
       // Get song ID from iTunes API (free) but use for Apple Music
@@ -276,6 +313,24 @@ export class AppleMusicUtils {
                   timestamp: Date.now(),
                   confidence: 1,
                 },
+              );
+
+              // Add to community database as well
+              await CommunityDatabase.addMapping(
+                youtubeId,
+                song.trackId.toString(),
+                {
+                  artist,
+                  songTitle,
+                  videoId: youtubeId,
+                  title: `${artist} - ${songTitle}`,
+                  channel: "",
+                  url: "",
+                  timestamp: Date.now(),
+                  confidence: 1,
+                },
+                song.artistName,
+                song.trackName,
               );
 
               // Return confirmation data for background script to handle

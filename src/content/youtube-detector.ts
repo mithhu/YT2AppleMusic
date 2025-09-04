@@ -218,6 +218,22 @@ class EnhancedYouTubeDetector {
                   });
                 return true; // Keep message channel open
 
+              case "CONTENT_SUPABASE_GET_STATS":
+                this.handleSupabaseGetStats(sendResponse);
+                return true;
+
+              case "CONTENT_SUPABASE_FIND_MAPPING":
+                this.handleSupabaseFindMapping(message.data, sendResponse);
+                return true;
+
+              case "CONTENT_SUPABASE_ADD_MAPPING":
+                this.handleSupabaseAddMapping(message.data, sendResponse);
+                return true;
+
+              case "CONTENT_SUPABASE_CONFIRM_MAPPING":
+                this.handleSupabaseConfirmMapping(message.data, sendResponse);
+                return true;
+
               default:
                 sendResponse({ success: false, error: "Unknown message type" });
             }
@@ -858,6 +874,77 @@ class EnhancedYouTubeDetector {
         this.cleanup();
         return;
       }
+    }
+  }
+
+  // Supabase handler methods for content script operations
+  private async handleSupabaseGetStats(sendResponse: Function) {
+    try {
+      // Use fallback - content script Supabase operations not available due to module restrictions
+      console.log(
+        "⚠️ Content script Supabase operations not available in this context",
+      );
+      sendResponse({
+        success: false,
+        error: "Content script Supabase not available",
+      });
+    } catch (error) {
+      console.error("❌ Content script Supabase getStats error:", error);
+      sendResponse({
+        success: false,
+        error: "Failed to get community stats from content script",
+      });
+    }
+  }
+
+  private async handleSupabaseFindMapping(data: any, sendResponse: Function) {
+    try {
+      console.log("⚠️ Content script Supabase findMapping not available");
+      sendResponse({
+        success: false,
+        error: "Content script Supabase not available",
+      });
+    } catch (error) {
+      console.error("❌ Content script Supabase findMapping error:", error);
+      sendResponse({
+        success: false,
+        error: "Failed to find mapping from content script",
+      });
+    }
+  }
+
+  private async handleSupabaseAddMapping(data: any, sendResponse: Function) {
+    try {
+      console.log("⚠️ Content script Supabase addMapping not available");
+      sendResponse({
+        success: false,
+        error: "Content script Supabase not available",
+      });
+    } catch (error) {
+      console.error("❌ Content script Supabase addMapping error:", error);
+      sendResponse({
+        success: false,
+        error: "Failed to add mapping from content script",
+      });
+    }
+  }
+
+  private async handleSupabaseConfirmMapping(
+    data: any,
+    sendResponse: Function,
+  ) {
+    try {
+      console.log("⚠️ Content script Supabase confirmMapping not available");
+      sendResponse({
+        success: false,
+        error: "Content script Supabase not available",
+      });
+    } catch (error) {
+      console.error("❌ Content script Supabase confirmMapping error:", error);
+      sendResponse({
+        success: false,
+        error: "Failed to confirm mapping from content script",
+      });
     }
   }
 }

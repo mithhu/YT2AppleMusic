@@ -7,6 +7,8 @@ import {
 import { AppleMusicUtils } from "../utils/appleMusicUtils";
 import { AIUtils } from "../utils/aiUtils";
 import { CacheUtils } from "../utils/cacheUtils";
+import { CommunityDatabase } from "../utils/communityDb";
+import { SUPABASE_CONFIG, isSupabaseConfigured } from "../config/supabase";
 
 class EnhancedBackgroundService {
   private appleMusicTab: number | null = null;
@@ -28,7 +30,28 @@ class EnhancedBackgroundService {
     console.log("🚀 Background service starting...");
     this.setupEventListeners();
     this.loadSettings();
+    this.initializeCommunityDatabase();
     console.log("✅ Background service initialized");
+  }
+
+  private async initializeCommunityDatabase() {
+    // Initialize community database with Supabase credentials
+    try {
+      if (!isSupabaseConfigured()) {
+        console.warn(
+          "⚠️ Supabase not configured - community database disabled",
+        );
+        return;
+      }
+
+      await CommunityDatabase.init(
+        SUPABASE_CONFIG.url,
+        SUPABASE_CONFIG.anonKey,
+      );
+      console.log("🌐 Community database initialized successfully");
+    } catch (error) {
+      console.error("❌ Failed to initialize community database:", error);
+    }
   }
 
   private setupEventListeners(): void {
@@ -92,6 +115,55 @@ class EnhancedBackgroundService {
         case "GET_CACHE_STATS":
           const stats = await CacheUtils.getCacheStats();
           sendResponse({ success: true, data: stats });
+          break;
+
+        case "GET_COMMUNITY_STATS":
+          try {
+            console.log(
+              "🔍 Attempting to get community stats via content script...",
+            );
+            // Try to get stats from content script first (has network access)
+            const tabs = await chrome.tabs.query({
+              active: true,
+              currentWindow: true,
+            });
+            if (tabs[0] && tabs[0].url?.includes("youtube.com")) {
+              try {
+                const contentResponse = await chrome.tabs.sendMessage(
+                  tabs[0].id!,
+                  {
+                    type: "CONTENT_SUPABASE_GET_STATS",
+                  },
+                );
+                if (contentResponse?.success) {
+                  console.log(
+                    "✅ Community stats retrieved from content script:",
+                    contentResponse.data,
+                  );
+                  sendResponse({ success: true, data: contentResponse.data });
+                  break;
+                }
+              } catch (contentError) {
+                console.log(
+                  "⚠️ Content script not available, falling back to service worker",
+                );
+              }
+            }
+
+            // Fallback to service worker (will likely fail due to network restrictions)
+            const communityStats = await CommunityDatabase.getStats();
+            console.log(
+              "✅ Community stats retrieved from service worker:",
+              communityStats,
+            );
+            sendResponse({ success: true, data: communityStats });
+          } catch (error) {
+            console.error("❌ Error getting community stats:", error);
+            sendResponse({
+              success: false,
+              error: "Failed to get community stats",
+            });
+          }
           break;
 
         case "EXPORT_CACHE":
@@ -348,11 +420,35 @@ class EnhancedBackgroundService {
   private async handleCacheConfirmation(youtubeId: string): Promise<void> {
     console.log(`✅ User confirmed cache entry for YouTube ${youtubeId}`);
     await CacheUtils.confirmCacheEntry(youtubeId);
+
+    // Also try to confirm in community database
+    try {
+      // Find the mapping in community database and confirm it
+      const communityMapping = await CommunityDatabase.findMapping(youtubeId);
+      if (communityMapping) {
+        await CommunityDatabase.confirmMapping(communityMapping.id!);
+        console.log(`🌐 Confirmed community mapping ${communityMapping.id}`);
+      }
+    } catch (error) {
+      console.error("❌ Error confirming community mapping:", error);
+    }
   }
 
   private async handleCacheRejection(youtubeId: string): Promise<void> {
     console.log(`❌ User rejected cache entry for YouTube ${youtubeId}`);
     await CacheUtils.removeCacheEntry(youtubeId);
+
+    // Also try to reject in community database
+    try {
+      // Find the mapping in community database and reject it
+      const communityMapping = await CommunityDatabase.findMapping(youtubeId);
+      if (communityMapping) {
+        await CommunityDatabase.rejectMapping(communityMapping.id!);
+        console.log(`🌐 Rejected community mapping ${communityMapping.id}`);
+      }
+    } catch (error) {
+      console.error("❌ Error rejecting community mapping:", error);
+    }
   }
 
   private async showConfirmationDialog(data: {

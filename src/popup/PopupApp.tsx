@@ -43,10 +43,17 @@ const PopupApp: React.FC = () => {
     appleMusicSong: string;
   } | null>(null);
 
+  const [communityStats, setCommunityStats] = useState<{
+    totalMappings: number;
+    highConfidenceMappings: number;
+    userContributions: number;
+  } | null>(null);
+
   useEffect(() => {
     loadSettings();
     checkCurrentTab();
     loadCacheStats();
+    loadCommunityStats();
     checkForPendingConfirmation();
   }, []);
 
@@ -112,6 +119,41 @@ const PopupApp: React.FC = () => {
     }
   };
 
+  const loadCommunityStats = async () => {
+    try {
+      // Try direct Supabase access from popup first
+      const { CommunityDatabase } = await import("../utils/communityDb");
+      const { SUPABASE_CONFIG, isSupabaseConfigured } = await import(
+        "../config/supabase"
+      );
+
+      if (isSupabaseConfigured()) {
+        console.log("🔍 Popup: Attempting direct Supabase access...");
+        CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        const stats = await CommunityDatabase.getStats();
+        console.log("✅ Popup: Community stats retrieved directly:", stats);
+        setCommunityStats(stats);
+        return;
+      }
+
+      // Fallback to background script
+      const response = await chrome.runtime.sendMessage({
+        type: "GET_COMMUNITY_STATS",
+      });
+      if (response.success) {
+        setCommunityStats(response.data);
+      }
+    } catch (error) {
+      console.error("Error loading community stats:", error);
+      // Set fallback stats
+      setCommunityStats({
+        totalMappings: 0,
+        highConfidenceMappings: 0,
+        userContributions: 0,
+      });
+    }
+  };
+
   const handleExportCache = async () => {
     try {
       const response = await chrome.runtime.sendMessage({
@@ -153,6 +195,7 @@ const PopupApp: React.FC = () => {
 
       setPendingConfirmation(null);
       loadCacheStats(); // Refresh cache stats
+      loadCommunityStats(); // Refresh community stats
       showStatus(
         isCorrect ? "✅ Match confirmed!" : "❌ Match rejected!",
         "success",
@@ -540,6 +583,47 @@ const PopupApp: React.FC = () => {
           ) : (
             <div className="text-xs text-white/60">
               No cached mappings yet. Use the extension to build your cache!
+            </div>
+          )}
+        </div>
+
+        {/* Community Database Stats */}
+        <div className="glass-effect rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Sparkles size={16} />
+            Community Database
+          </h3>
+
+          {communityStats ? (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Total Community Mappings:</span>
+                <span className="text-blue-400">
+                  {communityStats.totalMappings}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">High Confidence:</span>
+                <span className="text-green-400">
+                  {communityStats.highConfidenceMappings}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">Your Contributions:</span>
+                <span className="text-purple-400">
+                  {communityStats.userContributions}
+                </span>
+              </div>
+
+              <div className="mt-3 p-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg">
+                <p className="text-xs text-white/80 text-center">
+                  🌟 Help grow the community database by confirming matches!
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-white/60">
+              Community database not available. Check your connection.
             </div>
           )}
         </div>
