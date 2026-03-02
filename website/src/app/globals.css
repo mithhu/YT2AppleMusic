@@ -1,46 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --apple-red: #fa233b;
-  --apple-pink: #fc5c7d;
-  --accent: #f43f5e;
-  --accent-soft: #fb7185;
-  --surface: rgba(255, 255, 255, 0.04);
-  --surface-hover: rgba(255, 255, 255, 0.07);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-accent: rgba(244, 63, 94, 0.25);
-  --text-primary: #f1f5f9;
-  --text-secondary: rgba(241, 245, 249, 0.6);
-  --text-muted: rgba(241, 245, 249, 0.35);
+@theme {
+  --color-accent: #f43f5e;
+  --color-accent-soft: #fb7185;
+  --color-surface: rgba(255, 255, 255, 0.04);
+  --color-surface-hover: rgba(255, 255, 255, 0.07);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-txt: #f1f5f9;
+  --color-txt-secondary: rgba(241, 245, 249, 0.6);
+  --color-txt-muted: rgba(241, 245, 249, 0.35);
 }
 
 body {
   background: #0f1117;
+  color: #f1f5f9;
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 40, 80, 0.15), transparent),
     radial-gradient(ellipse 60% 40% at 80% 50%, rgba(30, 50, 80, 0.1), transparent);
 }
 
+.gradient-text {
+  background: linear-gradient(to right, #fb7185, #f43f5e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
@@ -65,15 +58,113 @@ body {
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   transition: all 0.2s ease;
 }
 
 .card:hover {
-  background: var(--surface-hover);
+  background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+.card-yt {
+  background: rgba(249, 115, 22, 0.03);
+  border-color: rgba(251, 146, 60, 0.1);
+}
+.card-yt:hover {
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.card-am {
+  background: rgba(16, 185, 129, 0.02);
+  border-color: rgba(52, 211, 153, 0.1);
+}
+.card-am:hover {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #fb7185, #f43f5e);
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: opacity 0.2s ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-primary:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(241, 245, 249, 0.6);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.badge-yt {
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(251, 146, 60, 0.15);
+  color: rgba(253, 186, 116, 0.8);
+}
+
+.badge-am {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  color: rgba(110, 231, 183, 0.8);
+}
+
+.badge-community {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: rgb(196, 181, 253);
+}
+
+.yt-comparison {
+  background: rgba(249, 115, 22, 0.05);
+  border: 1px solid rgba(251, 146, 60, 0.1);
+}
+
+.am-comparison {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(52, 211, 153, 0.1);
+}
+
+.icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-box-accent {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.icon-box-green {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.check-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 details summary {
@@ -90,10 +181,10 @@ details summary::before {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: rgba(241, 245, 249, 0.6);
   margin-right: 12px;
   flex-shrink: 0;
   transition: all 0.2s ease;
@@ -101,5 +192,5 @@ details summary::before {
 details[open] summary::before {
   content: "−";
   background: rgba(244, 63, 94, 0.1);
-  color: var(--accent-soft);
+  color: #fb7185;
 }
