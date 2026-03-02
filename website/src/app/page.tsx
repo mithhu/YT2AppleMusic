@@ -579,6 +579,17 @@ function AppleMusicCard({
       <div className="flex gap-2 mt-3.5">
         <a
           href={track.nativeUrl}
+          onClick={() => {
+            fetch("/api/save-mapping", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                trackId: track.trackId,
+                artist: track.artist,
+                song: track.name,
+              }),
+            }).catch(() => {});
+          }}
           className="btn-primary flex-1 flex items-center justify-center gap-2 py-2.5 text-xs"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

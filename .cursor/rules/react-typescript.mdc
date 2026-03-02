@@ -1,15 +1,15 @@
 ---
-description: React and TypeScript development standards for popup UI
+description: React and TypeScript development standards
 globs:
   - "src/popup/**/*.tsx"
   - "src/components/**/*.tsx"
-alwaysApply: true
+  - "website/src/**/*.tsx"
+alwaysApply: false
 ---
 
 # React + TypeScript Rules
 
 ## Component Standards
-
 - Use functional components only
 - Define props interfaces for all components
 - Use React.memo for performance-critical components
@@ -17,21 +17,23 @@ alwaysApply: true
 - Follow hooks rules (no conditional hooks)
 
 ## TypeScript Standards
-
 - Use strict TypeScript with explicit types
 - Prefer interfaces over type aliases for object shapes
 - Use string enums for constants
 - Always handle async/await with proper error handling
 
-## Styling
-
+## Extension Popup Styling
 - Use Tailwind CSS classes primarily
 - Use the established color palette (apple-red, apple-pink, etc.)
-- Ensure responsive design for popup constraints
+- Ensure responsive design for popup constraints (width ~360px)
 - Use glass-effect and gradient classes from existing styles
 
-## Component Pattern
+## Website Styling
+- Use CSS classes from globals.css (`.card`, `.btn-primary`, `.gradient-text`)
+- Use inline `style={{}}` for colors (Tailwind v4 var() compatibility)
+- Standard Tailwind for layout only
 
+## Component Pattern
 ```typescript
 interface ComponentProps {
   title: string;
@@ -42,13 +44,9 @@ interface ComponentProps {
 export const Component: React.FC<ComponentProps> = React.memo(
   ({ title, onAction, isLoading = false }) => {
     return (
-      <div className="glass-effect p-4">
-        <h2 className="text-apple-red">{title}</h2>
-        <button
-          onClick={onAction}
-          disabled={isLoading}
-          className="bg-gradient-to-r from-apple-pink to-apple-red"
-        >
+      <div className="p-4">
+        <h2>{title}</h2>
+        <button onClick={onAction} disabled={isLoading}>
           {isLoading ? "Loading..." : "Action"}
         </button>
       </div>

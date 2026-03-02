@@ -35,6 +35,35 @@ export function getYoutubeUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+/**
+ * Search YouTube for a song and return the first video ID.
+ * Uses YouTube's page HTML to extract the first result — no API key needed.
+ * Returns null on failure so it never blocks search results.
+ */
+export async function searchYoutubeVideoId(
+  artist: string,
+  song: string
+): Promise<string | null> {
+  try {
+    const query = encodeURIComponent(`${artist} ${song} official audio`);
+    const res = await fetch(
+      `https://www.youtube.com/results?search_query=${query}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
+      }
+    );
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 export function cleanTitle(title: string): string {
   return title
     .replace(/\s*\(.*$/gi, "")

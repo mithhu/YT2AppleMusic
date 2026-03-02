@@ -16,7 +16,7 @@ export interface MappingResult {
 }
 
 export async function findMappingByYoutubeId(
-  youtubeId: string
+  youtubeId: string,
 ): Promise<MappingResult | null> {
   const { data, error } = await supabase.rpc("find_mapping", {
     youtube_video_id: youtubeId,
@@ -41,7 +41,7 @@ export async function findMappingByYoutubeId(
  * Falls back to null if no mapping exists.
  */
 export async function findYoutubeIdByAppleMusicId(
-  appleMusicId: string
+  appleMusicId: string,
 ): Promise<string | null> {
   // The secure RPC only supports YouTube ID lookup, so we query
   // the community_stats-style approach won't work here.

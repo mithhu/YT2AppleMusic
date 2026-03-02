@@ -52,7 +52,7 @@ function buildAppleMusicResult(
   album: string,
   artwork: string,
   previewUrl: string,
-  youtubeUrl: string | null = null
+  youtubeUrl: string | null = null,
 ): AppleMusicResult {
   return {
     trackId,
@@ -69,7 +69,7 @@ function buildAppleMusicResult(
 
 function youtubeSearchFallback(artist: string, name: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    `${artist} ${name} official music video`
+    `${artist} ${name} official music video`,
   )}`;
 }
 
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
   if (!query || query.trim().length === 0) {
     return NextResponse.json(
       { error: "Missing query parameter ?q=" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -119,7 +119,7 @@ async function handleYoutubeSearch(youtubeId: string): Promise<NextResponse> {
           "",
           "",
           "",
-          getYoutubeUrl(youtubeId)
+          getYoutubeUrl(youtubeId),
         ),
       ],
       youtubeResult,
@@ -152,8 +152,8 @@ async function handleYoutubeSearch(youtubeId: string): Promise<NextResponse> {
       r.collectionName,
       getArtworkUrl(r.artworkUrl100),
       r.previewUrl || "",
-      getYoutubeUrl(youtubeId)
-    )
+      getYoutubeUrl(youtubeId),
+    ),
   );
 
   // Auto-push the top result to community DB (fire-and-forget).
@@ -186,7 +186,7 @@ async function handleSongSearch(query: string): Promise<NextResponse> {
   const appleMusicResults: AppleMusicResult[] = await Promise.all(
     itunesResults.map(async (r) => {
       const dbYoutubeId = await findYoutubeIdByAppleMusicId(
-        r.trackId.toString()
+        r.trackId.toString(),
       );
 
       const youtubeUrl = dbYoutubeId
@@ -200,9 +200,9 @@ async function handleSongSearch(query: string): Promise<NextResponse> {
         r.collectionName,
         getArtworkUrl(r.artworkUrl100),
         r.previewUrl || "",
-        youtubeUrl
+        youtubeUrl,
       );
-    })
+    }),
   );
 
   return NextResponse.json({
@@ -237,7 +237,7 @@ async function enrichFromItunes(result: SearchResult): Promise<SearchResult> {
   if (first.artist && first.name) {
     const itunesResults = await searchItunes(
       `${first.artist} ${first.name}`,
-      1
+      1,
     );
     if (itunesResults.length > 0) {
       const itunes = itunesResults[0];

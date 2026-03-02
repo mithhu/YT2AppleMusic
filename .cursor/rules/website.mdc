@@ -1,0 +1,48 @@
+---
+description: Next.js website development rules (Tailwind v4, Supabase, iTunes API)
+globs:
+  - "website/src/**/*.ts"
+  - "website/src/**/*.tsx"
+alwaysApply: false
+---
+
+# Website Rules (Next.js + Tailwind v4)
+
+## Tailwind v4 Compatibility
+- Use `@theme` in globals.css to register custom colors, NOT `:root` CSS variables for Tailwind classes
+- Do NOT use `bg-clip-text` or `text-transparent` as Tailwind utilities — use the `.gradient-text` CSS class
+- Do NOT use `text-[var(--name)]` or `bg-[var(--name)]/opacity` patterns — they break locally
+- Use inline `style={{}}` for dynamic colors or CSS classes defined in globals.css
+- Safe Tailwind classes: `text-white`, `text-white/80`, `bg-transparent`, standard colors
+
+## Styling Approach
+- CSS classes for reusable styles: `.card`, `.btn-primary`, `.btn-secondary`, `.badge-*`
+- Inline `style={{}}` for one-off colors with rgba values
+- Standard Tailwind for layout: flex, grid, spacing, border-radius, font-size
+
+## Data Source Priority
+1. Community database (Supabase RPCs) — always check first
+2. iTunes Search API — fallback when DB has no match
+3. YouTube oEmbed — for extracting video metadata from URLs
+
+## Supabase Integration
+- Use pre-configured client from `website/src/lib/supabase.ts`
+- All DB access through RPCs: `find_mapping`, `find_mapping_by_apple_music`, `add_mapping`
+- Auto-push matches from YouTube URL searches via `addMappingFromWebsite()` (fire-and-forget)
+- Never block search results waiting for DB writes
+
+## iTunes API
+- Free, no API key needed, ~20 requests/minute soft limit
+- Use `searchItunes()` for song search, `lookupByTrackId()` for metadata enrichment
+- Always generate both web URL and `itmss://` native app URL
+
+## Apple Music Links
+- Web: `https://music.apple.com/us/song/{trackId}`
+- Native app: `itmss://music.apple.com/us/song/{trackId}`
+- Always provide both — native app for Mac/iOS users, web for others
+
+## SEO
+- Structured data (JSON-LD) for WebApplication and FAQPage in layout.tsx
+- Meta tags, Open Graph, Twitter Cards all configured
+- sitemap.ts and robots.ts for crawlers
+- Landing page at `/youtube-to-apple-music` for targeted keywords
