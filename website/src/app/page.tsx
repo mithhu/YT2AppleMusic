@@ -7,6 +7,17 @@ import type {
   YouTubeResult,
 } from "./api/search/route";
 
+function getPreferredAppleMusicUrl(track: AppleMusicResult): string {
+  if (typeof navigator === "undefined") {
+    return track.url;
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileDevice = /iphone|ipad|ipod|android/.test(userAgent);
+
+  return isMobileDevice ? track.url : track.nativeUrl;
+}
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
@@ -524,6 +535,8 @@ function AppleMusicCard({
   onTogglePreview: () => void;
   showYoutubeLink: boolean;
 }) {
+  const appleMusicUrl = getPreferredAppleMusicUrl(track);
+
   return (
     <div className="card card-am p-4 animate-fade-in">
       <div className="flex items-center gap-4">
@@ -578,7 +591,7 @@ function AppleMusicCard({
 
       <div className="flex gap-2 mt-3.5">
         <a
-          href={track.nativeUrl}
+          href={appleMusicUrl}
           onClick={() => {
             fetch("/api/save-mapping", {
               method: "POST",
