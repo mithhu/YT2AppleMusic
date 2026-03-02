@@ -6,7 +6,7 @@ import {
 import { searchYoutubeVideoId } from "@/lib/youtube";
 
 const APPLE_RSS_URL =
-  "https://rss.itunes.apple.com/api/v1/us/apple-music/top-songs/all/100/explicit.json";
+  "https://rss.applemarketingtools.com/api/v2/us/music/most-played/100/songs.json";
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 2000;
