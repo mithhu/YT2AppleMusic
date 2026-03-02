@@ -122,6 +122,29 @@ BEGIN
 END;
 $$;
 
+-- Function to find a YouTube ID by Apple Music track ID (reverse lookup)
+CREATE OR REPLACE FUNCTION find_mapping_by_apple_music(apple_music_track_id VARCHAR(20))
+RETURNS TABLE(
+  youtube_id VARCHAR(20),
+  confidence_score FLOAT,
+  user_confirmations INTEGER
+) 
+SECURITY DEFINER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    sm.youtube_id,
+    sm.confidence_score,
+    sm.user_confirmations
+  FROM song_mappings sm
+  WHERE sm.apple_music_id = apple_music_track_id
+    AND sm.confidence_score >= 0.5
+    AND sm.user_confirmations >= 1;
+END;
+$$;
+
 -- Function to add a new mapping (secure)
 CREATE OR REPLACE FUNCTION add_mapping(
   youtube_video_id VARCHAR(20),
@@ -347,6 +370,7 @@ REVOKE EXECUTE ON FUNCTION reject_mapping(INTEGER) FROM anon;
 -- 🔐 GRANT PERMISSIONS - Only to secure functions, NOT direct table access
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT EXECUTE ON FUNCTION find_mapping(VARCHAR) TO anon;
+GRANT EXECUTE ON FUNCTION find_mapping_by_apple_music(VARCHAR) TO anon;
 GRANT EXECUTE ON FUNCTION add_mapping(VARCHAR, VARCHAR, TEXT, TEXT, TEXT, TEXT, TEXT) TO anon;
 GRANT EXECUTE ON FUNCTION confirm_mapping(VARCHAR, TEXT) TO anon;
 GRANT EXECUTE ON FUNCTION reject_mapping(VARCHAR, TEXT) TO anon;
