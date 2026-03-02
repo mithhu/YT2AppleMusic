@@ -64,15 +64,10 @@ export class AppleMusicUtils {
             active: true,
           });
 
-          // NEVER automatically close tabs - let user decide
-          console.log(`🎯 Opened ${scheme} - user has full control`);
+          console.log(`🎯 Opened ${scheme} in tab ${tab.id}`);
+          console.log("⏳ User will see Chrome prompt to open Apple Music");
 
-          if (scheme.startsWith("itmss://")) {
-            console.log("⏳ User will see Chrome prompt to open Apple Music");
-            console.log("💡 NO automatic actions - user decides everything!");
-          }
-
-          return true; // Success - let user handle the prompt
+          return true;
         } catch (error) {
           console.log(`Failed to open with scheme ${i + 1}: ${scheme}`, error);
           continue;
@@ -392,18 +387,10 @@ export class AppleMusicUtils {
               active: true,
             });
 
-            // Only handle itmss schemes - no automatic fallbacks
-            if (scheme.startsWith("itmss://")) {
-              console.log(`🎯 Opening iTunes Store redirect: ${scheme}`);
-              console.log(
-                "⏳ Waiting for user to approve Apple Music opening...",
-              );
-              console.log("💡 Take your time - no automatic fallbacks!");
-              return true; // Let Chrome handle the prompt, no timeouts
-            } else {
-              console.log(`✅ Opened: ${scheme}`);
-              return true;
-            }
+            console.log(`🎯 Opened ${scheme} in tab ${tab.id}`);
+            console.log("⏳ User will see Chrome prompt to open Apple Music");
+
+            return true;
           } catch (error) {
             console.error(`❌ Failed search scheme: ${scheme}`, error);
             continue;
@@ -416,6 +403,31 @@ export class AppleMusicUtils {
     } catch (error) {
       console.error("Error opening Apple Music search:", error);
       return false;
+    }
+  }
+
+  /**
+   * Clean up any leftover blank itmss:// tabs. Call this from the popup
+   * when it opens -- by that point the user has already interacted with
+   * Chrome's "Open Apple Music?" dialog so it's safe to remove the tab.
+   */
+  static async cleanupItmssTabs(): Promise<void> {
+    try {
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        const url = tab.url || "";
+        if (
+          tab.id &&
+          (url.startsWith("itmss://") ||
+            url === "about:blank" ||
+            url === "")
+        ) {
+          await chrome.tabs.remove(tab.id);
+          console.log(`🧹 Cleaned up leftover tab ${tab.id} (${url || "blank"})`);
+        }
+      }
+    } catch (error) {
+      console.log("ℹ️ Tab cleanup skipped:", error);
     }
   }
 

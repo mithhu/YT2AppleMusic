@@ -2,15 +2,18 @@ import React, { useState, useEffect } from "react";
 import {
   Music,
   Settings,
-  TestTube,
-  ExternalLink,
   Sparkles,
   Zap,
   Database,
   Download,
+  ChevronDown,
+  ChevronUp,
+  Globe,
+  AlertCircle,
 } from "lucide-react";
 import { ExtensionSettings, MusicData } from "../types";
 import { CacheUtils } from "../utils/cacheUtils";
+import { AppleMusicUtils } from "../utils/appleMusicUtils";
 import { CommunityDatabase } from "../utils/communityDb-secure";
 import { SUPABASE_CONFIG, isSupabaseConfigured } from "../config/supabase";
 import ToggleSwitch from "./components/ToggleSwitch";
@@ -51,8 +54,12 @@ const PopupApp: React.FC = () => {
     userContributions: number;
   } | null>(null);
   const [isCurrentVideoMapped, setIsCurrentVideoMapped] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
 
   useEffect(() => {
+    AppleMusicUtils.cleanupItmssTabs();
     loadSettings();
     checkCurrentTab();
     loadCacheStats();
@@ -62,48 +69,35 @@ const PopupApp: React.FC = () => {
 
   const checkForPendingConfirmation = async () => {
     try {
-      console.log("🔍 Popup: Checking for pending confirmation...");
       const response = await chrome.runtime.sendMessage({
         type: "GET_PENDING_CONFIRMATION",
       });
-      console.log("🔍 Popup: GET_PENDING_CONFIRMATION response:", response);
       if (response.success && response.data) {
-        console.log("✅ Popup: Found pending confirmation:", response.data);
         setPendingConfirmation(response.data);
       } else {
-        console.log("❌ Popup: No pending confirmation found");
         setPendingConfirmation(null);
       }
     } catch (error) {
-      console.error(
-        "❌ Popup: Error checking for pending confirmation:",
-        error,
-      );
+      console.error("Error checking for pending confirmation:", error);
     }
   };
 
   const checkIfVideoIsMapped = async (youtubeId: string) => {
     try {
-      // Check local cache for CONFIRMED entries only
       const cachedSongId = await CacheUtils.getCachedSongId(youtubeId);
       if (cachedSongId) {
-        // getCachedSongId only returns confirmed entries, so this is a confirmed mapping
         setIsCurrentVideoMapped(true);
         return;
       }
 
-      // Check community database for high-confidence mappings
       if (isSupabaseConfigured()) {
         CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-        const communityMapping = await CommunityDatabase.findMapping(youtubeId);
-        // findMapping only returns high-confidence mappings (>= 1 confirmation)
+        const communityMapping =
+          await CommunityDatabase.findMapping(youtubeId);
         setIsCurrentVideoMapped(!!communityMapping);
       } else {
         setIsCurrentVideoMapped(false);
       }
-
-      // Note: We don't check for unconfirmed local cache entries because
-      // those are just pending confirmation and shouldn't show the remove button
     } catch (error) {
       console.error("Error checking if video is mapped:", error);
       setIsCurrentVideoMapped(false);
@@ -114,7 +108,6 @@ const PopupApp: React.FC = () => {
     videoData: MusicData,
   ): Promise<MusicData> => {
     try {
-      // If video is mapped, try to get the database confidence score
       if (isSupabaseConfigured()) {
         CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
         const communityMapping = await CommunityDatabase.findMapping(
@@ -122,15 +115,12 @@ const PopupApp: React.FC = () => {
         );
 
         if (communityMapping && communityMapping.confidenceScore) {
-          // Use database confidence instead of YouTube detection confidence
           return {
             ...videoData,
             confidence: communityMapping.confidenceScore,
           };
         }
       }
-
-      // If no database confidence found, return original video data
       return videoData;
     } catch (error) {
       console.error("Error getting database confidence:", error);
@@ -158,7 +148,6 @@ const PopupApp: React.FC = () => {
         data: newSettings,
       });
       setSettings(newSettings);
-      showStatus("Settings saved!", "success");
     } catch (error) {
       console.error("Error saving settings:", error);
       showStatus("Error saving settings", "error");
@@ -180,17 +169,13 @@ const PopupApp: React.FC = () => {
 
   const loadCommunityStats = async () => {
     try {
-      // Try direct Supabase access from popup first
       if (isSupabaseConfigured()) {
-        console.log("🔍 Popup: Attempting direct Supabase access...");
         CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
         const stats = await CommunityDatabase.getStats();
-        console.log("✅ Popup: Community stats retrieved directly:", stats);
         setCommunityStats(stats);
         return;
       }
 
-      // Fallback to background script
       const response = await chrome.runtime.sendMessage({
         type: "GET_COMMUNITY_STATS",
       });
@@ -199,7 +184,6 @@ const PopupApp: React.FC = () => {
       }
     } catch (error) {
       console.error("Error loading community stats:", error);
-      // Set fallback stats
       setCommunityStats({
         totalMappings: 0,
         highConfidenceMappings: 0,
@@ -214,20 +198,16 @@ const PopupApp: React.FC = () => {
         type: "EXPORT_CACHE",
       });
       if (response.success) {
-        // Create and download the cache file
         const blob = new Blob([response.data], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `youtube-apple-music-cache-${
-          new Date().toISOString().split("T")[0]
-        }.txt`;
+        a.download = `yt2apple-cache-${new Date().toISOString().split("T")[0]}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-
-        showStatus("Cache exported successfully!", "success");
+        showStatus("Cache exported!", "success");
       }
     } catch (error) {
       console.error("Error exporting cache:", error);
@@ -248,16 +228,15 @@ const PopupApp: React.FC = () => {
       });
 
       setPendingConfirmation(null);
-      loadCacheStats(); // Refresh cache stats
-      loadCommunityStats(); // Refresh community stats
+      loadCacheStats();
+      loadCommunityStats();
 
-      // Update mapping state if we have current video
       if (currentVideo) {
         checkIfVideoIsMapped(currentVideo.videoId);
       }
 
       showStatus(
-        isCorrect ? "✅ Match confirmed!" : "❌ Match rejected!",
+        isCorrect ? "Match confirmed!" : "Match rejected",
         "success",
       );
     } catch (error) {
@@ -272,7 +251,6 @@ const PopupApp: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Try to unmap using the secure community database
       if (isSupabaseConfigured()) {
         CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
         const success = await CommunityDatabase.unmapMapping(
@@ -280,24 +258,20 @@ const PopupApp: React.FC = () => {
         );
 
         if (success) {
-          showStatus("🗑️ Song mapping removed successfully!", "success");
-          loadCommunityStats(); // Refresh stats
-          setIsCurrentVideoMapped(false); // Update mapping state
+          showStatus("Mapping removed", "success");
+          loadCommunityStats();
+          setIsCurrentVideoMapped(false);
         } else {
-          showStatus(
-            "❌ Could not remove mapping (not found or no permission)",
-            "error",
-          );
+          showStatus("Could not remove mapping", "error");
         }
       } else {
-        // Fallback to local cache removal
         await chrome.runtime.sendMessage({
           type: "REMOVE_CACHE_ENTRY",
           data: { youtubeId: currentVideo.videoId },
         });
-        showStatus("🗑️ Removed from local cache", "success");
+        showStatus("Removed from local cache", "success");
         loadCacheStats();
-        setIsCurrentVideoMapped(false); // Update mapping state
+        setIsCurrentVideoMapped(false);
       }
     } catch (error) {
       console.error("Error unmapping song:", error);
@@ -320,34 +294,63 @@ const PopupApp: React.FC = () => {
           { type: "GET_CURRENT_VIDEO" },
           async (response) => {
             if (chrome.runtime.lastError) {
-              setCurrentVideo(null);
-              setIsCurrentVideoMapped(false);
+              // Content script not available -- try triggering a fresh detection
+              console.log(
+                "Content script not responding, trying TEST_DETECTION...",
+              );
+              retryWithTestDetection(tab.id!);
               return;
             }
 
             if (response && response.videoData) {
-              // Check if this video is already mapped
               await checkIfVideoIsMapped(response.videoData.videoId);
-
-              // Get video data with correct confidence score (from database if mapped)
               const updatedVideoData = await getVideoDataWithDatabaseConfidence(
                 response.videoData,
               );
               setCurrentVideo(updatedVideoData);
+              setVideoLoading(false);
             } else {
-              setCurrentVideo(null);
-              setIsCurrentVideoMapped(false);
+              // Content script responded but has no data yet -- try fresh detection
+              retryWithTestDetection(tab.id!);
             }
           },
         );
       } else {
-        showStatus("Open a YouTube video to use this extension", "info");
         setCurrentVideo(null);
         setIsCurrentVideoMapped(false);
+        setVideoLoading(false);
       }
     } catch (error) {
       console.error("Error checking current tab:", error);
+      setVideoLoading(false);
     }
+  };
+
+  const retryWithTestDetection = (tabId: number) => {
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: "TEST_DETECTION" },
+      async (response) => {
+        if (chrome.runtime.lastError || !response?.success) {
+          setCurrentVideo(null);
+          setIsCurrentVideoMapped(false);
+          setVideoLoading(false);
+          return;
+        }
+
+        if (response.videoData) {
+          await checkIfVideoIsMapped(response.videoData.videoId);
+          const updatedVideoData = await getVideoDataWithDatabaseConfidence(
+            response.videoData,
+          );
+          setCurrentVideo(updatedVideoData);
+        } else {
+          setCurrentVideo(null);
+          setIsCurrentVideoMapped(false);
+        }
+        setVideoLoading(false);
+      },
+    );
   };
 
   const showStatus = (message: string, type: "success" | "error" | "info") => {
@@ -360,112 +363,246 @@ const PopupApp: React.FC = () => {
   const handleOpenAppleMusic = async () => {
     try {
       if (!currentVideo) {
-        showStatus(
-          "No video detected. Please open a YouTube video first.",
-          "error",
-        );
+        showStatus("No video detected", "error");
         return;
       }
 
-      showStatus("Opening current song on Apple Music...", "info");
+      setIsLoading(true);
 
       const searchResponse = await chrome.runtime.sendMessage({
         type: "SEARCH_APPLE_MUSIC",
         data: {
-          ...currentVideo,
+          musicData: currentVideo,
           useNativeApp: settings.useNativeApp,
           aiEnhanced: settings.aiEnhancedSearch,
         },
       });
 
-      if (searchResponse.success) {
+      if (searchResponse.success && searchResponse.data !== false) {
         showStatus(
           settings.useNativeApp
-            ? "Opened in Apple Music app"
-            : "Opened Apple Music search",
+            ? "Opening Apple Music... click Play in the app"
+            : "Opened in browser",
           "success",
         );
-        // Refresh cache stats after search
         setTimeout(() => loadCacheStats(), 1000);
-        // Check if video is now mapped after search
         setTimeout(() => checkIfVideoIsMapped(currentVideo.videoId), 1500);
+        setTimeout(() => checkForPendingConfirmation(), 2000);
       } else {
-        showStatus("Error searching Apple Music", "error");
+        showStatus("Could not find this song on Apple Music", "error");
       }
     } catch (error) {
       console.error("Error opening Apple Music:", error);
       showStatus("Error opening Apple Music", "error");
-    }
-  };
-
-  const handleTestDetection = async () => {
-    setIsLoading(true);
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-
-      if (!tab.url || !tab.url.includes("youtube.com")) {
-        showStatus("Please open YouTube first", "error");
-        return;
-      }
-
-      showStatus("Testing detection...", "info");
-
-      chrome.tabs.sendMessage(
-        tab.id!,
-        { type: "TEST_DETECTION" },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            showStatus("Error: Please refresh the YouTube page", "error");
-            return;
-          }
-
-          if (response && response.success) {
-            showStatus("Detection test completed", "success");
-            if (response.videoData) {
-              setCurrentVideo(response.videoData);
-              // Check if this video is mapped
-              checkIfVideoIsMapped(response.videoData.videoId);
-            }
-          } else {
-            showStatus("Detection test failed", "error");
-          }
-        },
-      );
-    } catch (error) {
-      console.error("Error testing detection:", error);
-      showStatus("Error during test", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const totalSongs =
+    (cacheStats?.confirmed || 0) +
+    (communityStats?.totalMappings || 0);
+
+  const showConfirmation =
+    pendingConfirmation &&
+    (!currentVideo ||
+      pendingConfirmation.youtubeId === currentVideo.videoId);
+
   return (
     <div className="w-80 min-h-96 gradient-bg text-white">
       <div className="p-5">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="text-3xl mb-2 bounce-icon">🎵 ➡️ 🍎</div>
-          <h1 className="text-lg font-semibold mb-1">
-            YouTube to Apple Music AI
-          </h1>
-          <p className="text-xs opacity-80">
-            AI-powered music bridge with native app support
+        <div className="text-center mb-5">
+          <div className="text-2xl mb-1">🎵 ➡️ 🍎</div>
+          <h1 className="text-base font-bold">YT2AppleMusic</h1>
+          <p className="text-xs text-white/50 mt-0.5">
+            {settings.autoPlay ? "Auto-detecting" : "Manual mode"} &middot;{" "}
+            {settings.useNativeApp ? "Native app" : "Web player"}
           </p>
         </div>
 
-        {/* Settings Section */}
-        <div className="glass-effect rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Settings size={16} />
-            Settings
-          </h3>
+        {/* Status Message */}
+        {status && (
+          <StatusMessage
+            message={status.message}
+            type={status.type}
+            onClose={() => setStatus(null)}
+          />
+        )}
 
-          <div className="space-y-3">
+        {/* Pending Confirmation -- highest priority, shown first */}
+        {showConfirmation && (
+          <div className="glass-effect rounded-xl p-4 mb-4 border border-yellow-400/50">
+            <p className="text-xs font-semibold text-yellow-300 mb-3">
+              Is this the right match?
+            </p>
+
+            <div className="space-y-2 mb-4">
+              <div className="bg-white/5 rounded-lg p-2.5">
+                <p className="text-xs text-white/50 mb-0.5">YouTube</p>
+                <p className="text-xs text-white font-medium">
+                  {pendingConfirmation!.youtubeTitle}
+                </p>
+              </div>
+
+              <div className="bg-white/5 rounded-lg p-2.5">
+                <p className="text-xs text-white/50 mb-0.5">Apple Music</p>
+                <p className="text-xs text-green-400 font-medium">
+                  {pendingConfirmation!.appleMusicArtist} &ndash;{" "}
+                  {pendingConfirmation!.appleMusicSong}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleConfirmMatch(true)}
+                className="flex-1 py-2 rounded-lg bg-green-500/80 hover:bg-green-500 text-white text-xs font-semibold transition-colors"
+              >
+                Yes, correct
+              </button>
+              <button
+                onClick={() => handleConfirmMatch(false)}
+                className="flex-1 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 text-xs font-semibold transition-colors"
+              >
+                No, wrong
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Current Video -- the main content */}
+        {videoLoading ? (
+          <div className="glass-effect rounded-xl p-6 mb-4 text-center">
+            <div className="animate-pulse-slow text-2xl mb-2">🎵</div>
+            <p className="text-xs text-white/50">Detecting music...</p>
+          </div>
+        ) : currentVideo ? (
+          <CurrentVideo
+            videoData={currentVideo}
+            onPlayAppleMusic={handleOpenAppleMusic}
+            onUnmap={isCurrentVideoMapped ? handleUnmapSong : undefined}
+            isLoading={isLoading}
+          />
+        ) : (
+          <div className="glass-effect rounded-xl p-6 mb-4 text-center">
+            <div className="text-2xl mb-2 opacity-40">🎵</div>
+            <p className="text-sm text-white/50 font-medium">
+              No music detected
+            </p>
+            <p className="text-xs text-white/30 mt-1">
+              Open a YouTube music video to get started
+            </p>
+          </div>
+        )}
+
+        {/* Song Library -- merged cache + community stats */}
+        <button
+          onClick={() => setShowStats(!showStats)}
+          className="w-full glass-effect rounded-xl p-3 mb-3 flex items-center justify-between hover:bg-white/15 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Globe size={14} className="text-purple-400" />
+            <span className="text-xs font-medium">Song Library</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/40">
+              {totalSongs} songs
+            </span>
+            {showStats ? (
+              <ChevronUp size={14} className="text-white/40" />
+            ) : (
+              <ChevronDown size={14} className="text-white/40" />
+            )}
+          </div>
+        </button>
+
+        {showStats && (
+          <div className="glass-effect rounded-xl p-4 mb-3 space-y-3">
+            {communityStats && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                  <Globe size={10} />
+                  Community
+                </p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Shared mappings</span>
+                  <span className="text-blue-400">
+                    {communityStats.totalMappings}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">High confidence</span>
+                  <span className="text-green-400">
+                    {communityStats.highConfidenceMappings}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Your contributions</span>
+                  <span className="text-purple-400">
+                    {communityStats.userContributions}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {cacheStats && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                  <Database size={10} />
+                  Local Cache
+                </p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Cached</span>
+                  <span className="text-white/80">{cacheStats.total}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Confirmed</span>
+                  <span className="text-green-400">{cacheStats.confirmed}</span>
+                </div>
+                {cacheStats.total - cacheStats.confirmed > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/50">Pending</span>
+                    <span className="text-yellow-400">
+                      {cacheStats.total - cacheStats.confirmed}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {cacheStats && cacheStats.total > 0 && (
+              <button
+                onClick={handleExportCache}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-white/50 hover:text-white/70 transition-colors"
+              >
+                <Download size={10} />
+                Export cache
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Settings -- collapsible */}
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="w-full glass-effect rounded-xl p-3 mb-3 flex items-center justify-between hover:bg-white/15 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Settings size={14} className="text-white/60" />
+            <span className="text-xs font-medium">Settings</span>
+          </div>
+          {showSettings ? (
+            <ChevronUp size={14} className="text-white/40" />
+          ) : (
+            <ChevronDown size={14} className="text-white/40" />
+          )}
+        </button>
+
+        {showSettings && (
+          <div className="glass-effect rounded-xl p-4 mb-3 space-y-3">
             <ToggleSwitch
-              label="Auto-play detected music"
+              label="Auto-detect & open"
               checked={settings.autoPlay}
               onChange={(checked) =>
                 saveSettings({ ...settings, autoPlay: checked })
@@ -473,7 +610,7 @@ const PopupApp: React.FC = () => {
             />
 
             <ToggleSwitch
-              label="Use native Apple Music app"
+              label="Native Apple Music app"
               checked={settings.useNativeApp}
               onChange={(checked) =>
                 saveSettings({ ...settings, useNativeApp: checked })
@@ -491,32 +628,21 @@ const PopupApp: React.FC = () => {
             />
 
             {settings.aiEnhancedSearch && (
-              <div className="mt-2 p-2 bg-black/10 rounded-lg">
+              <div className="p-2 bg-black/10 rounded-lg">
                 <input
                   type="password"
-                  placeholder="Enter OpenAI API Key (sk-...)"
+                  placeholder="OpenAI API Key (sk-...)"
                   value={settings.openAIApiKey || ""}
                   onChange={(e) =>
                     saveSettings({ ...settings, openAIApiKey: e.target.value })
                   }
-                  className="w-full px-2 py-1 text-xs bg-white/20 border border-white/30 rounded text-white placeholder-white/60 focus:outline-none focus:border-white/50"
+                  className="w-full px-2 py-1 text-xs bg-white/20 border border-white/30 rounded text-white placeholder-white/50 focus:outline-none focus:border-white/50"
                 />
-                <p className="text-xs text-white/70 mt-1">
-                  Get your key from{" "}
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-white"
-                  >
-                    OpenAI Platform
-                  </a>
-                </p>
               </div>
             )}
 
             <ToggleSwitch
-              label="Show notifications"
+              label="Notifications"
               checked={settings.showNotifications}
               onChange={(checked) =>
                 saveSettings({ ...settings, showNotifications: checked })
@@ -531,200 +657,7 @@ const PopupApp: React.FC = () => {
               }
             />
           </div>
-        </div>
-
-        {/* Actions Section */}
-        <div className="glass-effect rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Music size={16} />
-            Actions
-          </h3>
-
-          <div className="space-y-2">
-            <ActionButton
-              onClick={handleOpenAppleMusic}
-              icon={<ExternalLink size={16} />}
-            >
-              Open Apple Music
-            </ActionButton>
-
-            <ActionButton
-              onClick={handleTestDetection}
-              disabled={isLoading}
-              icon={<TestTube size={16} />}
-            >
-              Test Detection
-            </ActionButton>
-
-            <ActionButton
-              onClick={checkForPendingConfirmation}
-              icon={<Database size={16} />}
-              className="bg-purple-500 hover:bg-purple-600"
-            >
-              Check Confirmation
-            </ActionButton>
-          </div>
-        </div>
-
-        {/* Pending Confirmation Section */}
-        {pendingConfirmation &&
-          (!currentVideo ||
-            pendingConfirmation.youtubeId === currentVideo.videoId) && (
-          <div className="glass-effect rounded-xl p-4 mb-4 border-2 border-yellow-400">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Music size={16} />
-              Confirm Apple Music Match
-            </h3>
-
-            <div className="space-y-3 mb-4">
-              <div>
-                <div className="text-xs text-white/60 mb-1">YouTube Video:</div>
-                <div className="text-xs text-white bg-white/10 rounded p-2">
-                  {pendingConfirmation.youtubeTitle}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs text-white/60 mb-1">
-                  Found on Apple Music:
-                </div>
-                <div className="text-xs text-green-400 bg-white/10 rounded p-2 font-medium">
-                  {pendingConfirmation.appleMusicArtist} -{" "}
-                  {pendingConfirmation.appleMusicSong}
-                </div>
-              </div>
-
-              <div className="text-xs text-white/70 text-center">
-                Is this the correct match?
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <ActionButton
-                onClick={() => handleConfirmMatch(true)}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-xs"
-                icon={<span>✓</span>}
-              >
-                Yes, Correct
-              </ActionButton>
-              <ActionButton
-                onClick={() => handleConfirmMatch(false)}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-xs"
-                icon={<span>✗</span>}
-              >
-                No, Wrong
-              </ActionButton>
-            </div>
-          </div>
         )}
-
-        {/* Cache Section */}
-        <div className="glass-effect rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Database size={16} />
-            Cache Status
-          </h3>
-
-          {cacheStats ? (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">Total Mappings:</span>
-                <span className="text-white">{cacheStats.total}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">Confirmed:</span>
-                <span className="text-green-400">{cacheStats.confirmed}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">Pending:</span>
-                <span className="text-yellow-400">
-                  {cacheStats.total - cacheStats.confirmed}
-                </span>
-              </div>
-
-              {cacheStats.total > 0 && (
-                <ActionButton
-                  onClick={handleExportCache}
-                  icon={<Download size={16} />}
-                  className="mt-2 text-xs"
-                >
-                  Export Cache
-                </ActionButton>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-white/60">
-              No cached mappings yet. Use the extension to build your cache!
-            </div>
-          )}
-        </div>
-
-        {/* Community Database Stats */}
-        <div className="glass-effect rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Sparkles size={16} />
-            Community Database
-          </h3>
-
-          {communityStats ? (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">Total Community Mappings:</span>
-                <span className="text-blue-400">
-                  {communityStats.totalMappings}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">High Confidence:</span>
-                <span className="text-green-400">
-                  {communityStats.highConfidenceMappings}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">Your Contributions:</span>
-                <span className="text-purple-400">
-                  {communityStats.userContributions}
-                </span>
-              </div>
-
-              <div className="mt-3 p-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg">
-                <p className="text-xs text-white/80 text-center">
-                  🌟 Help grow the community database by confirming matches!
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-white/60">
-              Community database not available. Check your connection.
-            </div>
-          )}
-        </div>
-
-        {/* Status */}
-        {status && (
-          <StatusMessage
-            message={status.message}
-            type={status.type}
-            onClose={() => setStatus(null)}
-          />
-        )}
-
-        {/* Current Video */}
-        {currentVideo && (
-          <CurrentVideo
-            videoData={currentVideo}
-            onUnmap={isCurrentVideoMapped ? handleUnmapSong : undefined}
-            isLoading={isLoading}
-          />
-        )}
-
-        {/* Footer */}
-        <div className="text-center text-xs opacity-70 mt-4">
-          <p>
-            Detected music videos will open in{" "}
-            {settings.useNativeApp ? "Apple Music app" : "Apple Music web"}
-          </p>
-        </div>
       </div>
     </div>
   );

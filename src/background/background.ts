@@ -96,7 +96,7 @@ class EnhancedBackgroundService {
 
         case "SEARCH_APPLE_MUSIC":
           const result = await this.searchAppleMusic(message.data);
-          sendResponse({ success: true, data: result });
+          sendResponse({ success: !!result, data: result });
           break;
 
         case "GET_SETTINGS":
@@ -373,7 +373,6 @@ class EnhancedBackgroundService {
         );
 
         if (result) {
-          // Create a temporary MusicData object with the URL for openDirectSong
           const tempMusicData = {
             ...musicData,
             directUrl: result.url,
@@ -392,7 +391,6 @@ class EnhancedBackgroundService {
               console.log(
                 "🤔 Song needs confirmation, storing data immediately",
               );
-              // Store confirmation immediately - no delays needed
               this.currentPendingConfirmation = result.confirmationData;
               console.log(
                 "🤔 Stored pending confirmation:",
@@ -408,7 +406,6 @@ class EnhancedBackgroundService {
         const nativeSuccess = await AppleMusicUtils.openInNativeApp(musicData);
         if (nativeSuccess) {
           console.log("Native app search successful!");
-          // Pause YouTube video after opening Apple Music
           await this.pauseYouTubeAfterAppleMusic();
           return true;
         }

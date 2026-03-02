@@ -1,85 +1,88 @@
 import React from "react";
-import { Music, User, Youtube, Trash2 } from "lucide-react";
+import { Music, User, Trash2, ExternalLink } from "lucide-react";
 import { MusicData } from "../../types";
 
 interface CurrentVideoProps {
   videoData: MusicData;
   onUnmap?: () => void;
+  onPlayAppleMusic: () => void;
   isLoading?: boolean;
 }
 
 const CurrentVideo: React.FC<CurrentVideoProps> = ({
   videoData,
   onUnmap,
+  onPlayAppleMusic,
   isLoading = false,
 }) => {
+  const confidencePercent = videoData.confidence
+    ? Math.round(videoData.confidence * 100)
+    : null;
+
+  const confidenceColor =
+    confidencePercent && confidencePercent >= 80
+      ? "text-green-400"
+      : confidencePercent && confidencePercent >= 60
+        ? "text-yellow-400"
+        : "text-orange-400";
+
+  const confidenceBarColor =
+    confidencePercent && confidencePercent >= 80
+      ? "bg-green-400"
+      : confidencePercent && confidencePercent >= 60
+        ? "bg-yellow-400"
+        : "bg-orange-400";
+
   return (
     <div className="glass-effect rounded-xl p-4 mb-4">
-      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-        <Youtube size={16} />
-        Current Video
-      </h4>
-
-      <div className="space-y-2 text-xs">
-        <div className="flex items-start gap-2">
-          <Music size={12} className="mt-0.5 text-white/60" />
-          <div>
-            <span className="text-white/60">Title: </span>
-            <span className="text-white">{videoData.title}</span>
-          </div>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+          <Music size={20} className="text-apple-pink" />
         </div>
-
-        <div className="flex items-start gap-2">
-          <User size={12} className="mt-0.5 text-white/60" />
-          <div>
-            <span className="text-white/60">Channel: </span>
-            <span className="text-white">{videoData.channel}</span>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white truncate">
+            {videoData.songTitle}
+          </p>
+          <p className="text-xs text-white/60 truncate flex items-center gap-1">
+            <User size={10} />
+            {videoData.artist}
+          </p>
         </div>
-
-        <div className="flex items-start gap-2">
-          <Music size={12} className="mt-0.5 text-white/60" />
-          <div>
-            <span className="text-white/60">Artist: </span>
-            <span className="text-white">{videoData.artist}</span>
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2">
-          <Music size={12} className="mt-0.5 text-white/60" />
-          <div>
-            <span className="text-white/60">Song: </span>
-            <span className="text-white">{videoData.songTitle}</span>
-          </div>
-        </div>
-
-        {videoData.confidence && (
-          <div className="flex items-center gap-2 mt-3">
-            <div className="flex-1 bg-white/20 rounded-full h-1.5">
-              <div
-                className="bg-green-400 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${videoData.confidence * 100}%` }}
-              />
-            </div>
-            <span className="text-white/60 text-xs">
-              {Math.round(videoData.confidence * 100)}% confident
-            </span>
-          </div>
-        )}
-
-        {onUnmap && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <button
-              onClick={onUnmap}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 hover:text-red-300 disabled:text-red-500 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed"
-            >
-              <Trash2 size={12} />
-              {isLoading ? "Removing..." : "Remove My Mapping"}
-            </button>
-          </div>
+        {confidencePercent && (
+          <span className={`text-xs font-medium shrink-0 ${confidenceColor}`}>
+            {confidencePercent}%
+          </span>
         )}
       </div>
+
+      {confidencePercent && (
+        <div className="w-full bg-white/10 rounded-full h-1 mb-4">
+          <div
+            className={`${confidenceBarColor} h-1 rounded-full transition-all duration-500`}
+            style={{ width: `${confidencePercent}%` }}
+          />
+        </div>
+      )}
+
+      <button
+        onClick={onPlayAppleMusic}
+        disabled={isLoading}
+        className="w-full py-2.5 rounded-lg text-sm font-semibold apple-music-gradient text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ExternalLink size={14} />
+        Play on Apple Music
+      </button>
+
+      {onUnmap && (
+        <button
+          onClick={onUnmap}
+          disabled={isLoading}
+          className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 text-red-400/70 hover:text-red-400 text-xs transition-colors disabled:cursor-not-allowed"
+        >
+          <Trash2 size={10} />
+          Remove mapping
+        </button>
+      )}
     </div>
   );
 };
