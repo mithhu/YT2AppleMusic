@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://yt2applemusic.com";
+const SITE_URL = getSiteUrl();
 const SITE_NAME = "YT2Apple Music";
 const SITE_DESCRIPTION =
   "Upgrade from compressed YouTube audio to Apple Music lossless quality. Paste a YouTube link or search any song — get instant Apple Music links with hi-res lossless and Dolby Atmos. Free, no signup.";
