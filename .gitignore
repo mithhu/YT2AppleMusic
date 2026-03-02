@@ -99,6 +99,7 @@ temp/
 # Chrome extension specific
 *.crx
 *.pem
+*.zip
 web-ext-artifacts/
 
 # Development files (keep in repo but ignore if needed)
