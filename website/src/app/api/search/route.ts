@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findMappingByYoutubeId, findYoutubeIdByAppleMusicId } from "@/lib/supabase";
+import {
+  findMappingByYoutubeId,
+  findYoutubeIdByAppleMusicId,
+  addMappingFromWebsite,
+} from "@/lib/supabase";
 import {
   searchItunes,
   getAppleMusicUrl,
@@ -151,6 +155,20 @@ async function handleYoutubeSearch(youtubeId: string): Promise<NextResponse> {
       getYoutubeUrl(youtubeId)
     )
   );
+
+  // Auto-push the top result to community DB (fire-and-forget).
+  // This grows the database passively from website usage.
+  if (itunesResults.length > 0) {
+    const top = itunesResults[0];
+    addMappingFromWebsite({
+      youtubeId,
+      appleMusicId: top.trackId.toString(),
+      youtubeTitle: youtubeInfo.title,
+      youtubeChannel: youtubeInfo.author_name,
+      appleMusicArtist: top.artistName,
+      appleMusicSong: top.trackName,
+    });
+  }
 
   return NextResponse.json({
     query: youtubeInfo.title,

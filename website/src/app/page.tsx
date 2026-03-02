@@ -96,12 +96,12 @@ export default function Home() {
               Why upgrade?
             </a>
             <a
-              href="https://github.com/mithhu/YT2AppleMusic"
+              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="text-xs px-2.5 py-1 bg-white/10 hover:bg-white/15 rounded-lg text-white/60 hover:text-white/90 transition-colors"
             >
-              Extension
+              Get Extension
             </a>
           </div>
         </div>
@@ -432,11 +432,19 @@ export default function Home() {
               <h3 className="text-sm font-medium">
                 Chrome Extension for Auto-Detection
               </h3>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-white/40 mb-2">
                 Install our free extension and it automatically detects songs on
                 YouTube, opening them in Apple Music with one click. Zero
                 friction.
               </p>
+              <a
+                href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--apple-pink)] hover:text-[var(--apple-red)] transition-colors"
+              >
+                Download the extension →
+              </a>
             </div>
           </div>
         </div>
@@ -531,12 +539,12 @@ export default function Home() {
               Why lossless?
             </a>
             <a
-              href="https://github.com/mithhu/YT2AppleMusic"
+              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-white/30 hover:text-white/60 transition-colors"
             >
-              GitHub
+              Chrome Extension
             </a>
             <a
               href="https://github.com/mithhu/YT2AppleMusic"
@@ -544,7 +552,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="text-xs text-white/30 hover:text-white/60 transition-colors"
             >
-              Chrome Extension
+              GitHub
             </a>
           </div>
         </div>

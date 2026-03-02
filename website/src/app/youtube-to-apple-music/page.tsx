@@ -328,6 +328,14 @@ export default function YouTubeToAppleMusicPage() {
               Search Songs
             </Link>
             <a
+              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-white/30 hover:text-white/60 transition-colors"
+            >
+              Chrome Extension
+            </a>
+            <a
               href="https://github.com/mithhu/YT2AppleMusic"
               target="_blank"
               rel="noopener noreferrer"

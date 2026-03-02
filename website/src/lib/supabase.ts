@@ -57,3 +57,32 @@ export async function findYoutubeIdByAppleMusicId(
     return null;
   }
 }
+
+/**
+ * Add a new mapping to the community DB from website usage.
+ * Uses a "website" user ID so these can be distinguished from
+ * extension-contributed mappings. Runs fire-and-forget — failures
+ * are silently ignored so they don't slow down search results.
+ */
+export async function addMappingFromWebsite(params: {
+  youtubeId: string;
+  appleMusicId: string;
+  youtubeTitle: string;
+  youtubeChannel: string;
+  appleMusicArtist: string;
+  appleMusicSong: string;
+}): Promise<void> {
+  try {
+    await supabase.rpc("add_mapping", {
+      youtube_video_id: params.youtubeId,
+      apple_music_track_id: params.appleMusicId,
+      youtube_video_title: params.youtubeTitle,
+      youtube_video_channel: params.youtubeChannel,
+      apple_music_track_artist: params.appleMusicArtist,
+      apple_music_track_song: params.appleMusicSong,
+      user_id: "website_auto",
+    });
+  } catch {
+    // Silently ignore — don't block search results
+  }
+}
