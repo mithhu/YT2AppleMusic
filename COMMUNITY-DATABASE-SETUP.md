@@ -1,8 +1,23 @@
-# 🌐 Community Database Setup Guide
+# 🌐 Community Database Guide
 
-This guide will help you set up the community database feature for YT2AppleMusic, allowing all users to contribute to a shared YouTube → Apple Music mapping database.
+This guide explains how the YT2AppleMusic community database works, allowing all users to contribute to a shared YouTube → Apple Music mapping database.
 
-## 🚀 Quick Setup with Supabase
+## 🚀 How It Works
+
+### For End Users: Zero Setup Required
+
+The extension comes pre-configured with a shared community Supabase database. This means:
+
+- All users contribute to the same database
+- No individual setup required
+- Instant access to community mappings
+- True collaborative experience
+
+The community database credentials are safely embedded in the extension code.
+
+## 🛠️ For Developers: Setting Up Your Own Instance
+
+If you want to set up your own Supabase instance for development:
 
 ### Step 1: Create Supabase Project
 
@@ -10,7 +25,7 @@ This guide will help you set up the community database feature for YT2AppleMusic
 2. Click "New Project"
 3. Choose your organization
 4. Fill in project details:
-   - **Name**: `yt2applemusic-community`
+   - **Name**: `yt2applemusic-dev`
    - **Database Password**: Generate a strong password
    - **Region**: Choose closest to your users
 5. Click "Create new project"
@@ -23,18 +38,16 @@ This guide will help you set up the community database feature for YT2AppleMusic
 3. Paste it into the SQL Editor
 4. Click **Run** to create the tables and functions
 
-### Step 3: Community Database (Pre-configured)
+### Step 3: Update Configuration
 
-**✅ No configuration needed!**
+Update `src/config/supabase.ts` with your credentials:
 
-The extension comes pre-configured with a shared community Supabase database. This means:
-
-- All users contribute to the same database
-- No individual setup required
-- Instant access to community mappings
-- True collaborative experience
-
-The community database credentials are safely embedded in the extension code.
+```typescript
+export const SUPABASE_CONFIG = {
+  url: "https://your-project-id.supabase.co",
+  anonKey: "your-anon-key-here",
+};
+```
 
 ### Step 4: Build and Test
 
@@ -43,18 +56,14 @@ The community database credentials are safely embedded in the extension code.
 3. Test on a YouTube music video
 4. Check the popup for "Community Database" stats
 
-## 🔧 Environment Variables (Optional)
+## 🔧 Community Database Architecture
 
-For better security, you can use environment variables:
+The extension uses a **centralized community database** approach:
 
-1. Create a `.env` file in the project root:
-
-```bash
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
-
-2. The extension will automatically use these values
+- **Pre-configured**: No setup required for end users
+- **Shared Database**: All users contribute to the same Supabase instance
+- **Anon Key**: Safely embedded in extension (designed to be public)
+- **RLS Protection**: Row Level Security policies control access
 
 ## 📊 Database Schema Overview
 
@@ -175,9 +184,10 @@ Supabase provides built-in rate limiting:
 
 1. **"Community database not available"**
 
-   - Check Supabase credentials in `src/config/supabase.ts`
-   - Verify project is active in Supabase dashboard
-   - Check browser console for errors
+   - Check network connectivity to Supabase
+   - Verify community database is active
+   - Check browser console for network errors
+   - Try reloading the extension
 
 2. **"Permission denied" errors**
 

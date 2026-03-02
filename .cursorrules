@@ -253,11 +253,19 @@ return {
 
 ## Security & Privacy
 
-- Never hardcode API keys
+- Never hardcode API keys (except Supabase anon key - see Community Database)
 - Process data locally when possible
 - Don't collect user behavior data
 - Use chrome.storage.sync for settings
 - Validate all external inputs
+
+### Community Database Configuration
+
+- **Centralized Approach**: Use pre-configured Supabase credentials for community database
+- **Anon Key Safety**: Supabase anon keys are designed to be public and safe to expose
+- **No Environment Variables**: Don't use .env files for community database credentials
+- **Documentation**: Keep setup guides focused on zero-config for end users
+- **Developer Override**: Allow developers to configure their own instance via `src/config/supabase.ts`
 
 ## User Experience
 

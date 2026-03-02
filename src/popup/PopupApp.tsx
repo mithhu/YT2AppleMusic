@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Music,
   Settings,
-  Search,
   TestTube,
   ExternalLink,
   Sparkles,
@@ -11,6 +10,9 @@ import {
   Download,
 } from "lucide-react";
 import { ExtensionSettings, MusicData } from "../types";
+import { CacheUtils } from "../utils/cacheUtils";
+import { CommunityDatabase } from "../utils/communityDb-secure";
+import { SUPABASE_CONFIG, isSupabaseConfigured } from "../config/supabase";
 import ToggleSwitch from "./components/ToggleSwitch";
 import StatusMessage from "./components/StatusMessage";
 import CurrentVideo from "./components/CurrentVideo";
@@ -48,6 +50,7 @@ const PopupApp: React.FC = () => {
     highConfidenceMappings: number;
     userContributions: number;
   } | null>(null);
+  const [isCurrentVideoMapped, setIsCurrentVideoMapped] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -76,6 +79,62 @@ const PopupApp: React.FC = () => {
         "❌ Popup: Error checking for pending confirmation:",
         error,
       );
+    }
+  };
+
+  const checkIfVideoIsMapped = async (youtubeId: string) => {
+    try {
+      // Check local cache for CONFIRMED entries only
+      const cachedSongId = await CacheUtils.getCachedSongId(youtubeId);
+      if (cachedSongId) {
+        // getCachedSongId only returns confirmed entries, so this is a confirmed mapping
+        setIsCurrentVideoMapped(true);
+        return;
+      }
+
+      // Check community database for high-confidence mappings
+      if (isSupabaseConfigured()) {
+        CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        const communityMapping = await CommunityDatabase.findMapping(youtubeId);
+        // findMapping only returns high-confidence mappings (>= 1 confirmation)
+        setIsCurrentVideoMapped(!!communityMapping);
+      } else {
+        setIsCurrentVideoMapped(false);
+      }
+
+      // Note: We don't check for unconfirmed local cache entries because
+      // those are just pending confirmation and shouldn't show the remove button
+    } catch (error) {
+      console.error("Error checking if video is mapped:", error);
+      setIsCurrentVideoMapped(false);
+    }
+  };
+
+  const getVideoDataWithDatabaseConfidence = async (
+    videoData: MusicData,
+  ): Promise<MusicData> => {
+    try {
+      // If video is mapped, try to get the database confidence score
+      if (isSupabaseConfigured()) {
+        CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        const communityMapping = await CommunityDatabase.findMapping(
+          videoData.videoId,
+        );
+
+        if (communityMapping && communityMapping.confidenceScore) {
+          // Use database confidence instead of YouTube detection confidence
+          return {
+            ...videoData,
+            confidence: communityMapping.confidenceScore,
+          };
+        }
+      }
+
+      // If no database confidence found, return original video data
+      return videoData;
+    } catch (error) {
+      console.error("Error getting database confidence:", error);
+      return videoData;
     }
   };
 
@@ -122,11 +181,6 @@ const PopupApp: React.FC = () => {
   const loadCommunityStats = async () => {
     try {
       // Try direct Supabase access from popup first
-      const { CommunityDatabase } = await import("../utils/communityDb");
-      const { SUPABASE_CONFIG, isSupabaseConfigured } = await import(
-        "../config/supabase"
-      );
-
       if (isSupabaseConfigured()) {
         console.log("🔍 Popup: Attempting direct Supabase access...");
         CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -196,6 +250,12 @@ const PopupApp: React.FC = () => {
       setPendingConfirmation(null);
       loadCacheStats(); // Refresh cache stats
       loadCommunityStats(); // Refresh community stats
+
+      // Update mapping state if we have current video
+      if (currentVideo) {
+        checkIfVideoIsMapped(currentVideo.videoId);
+      }
+
       showStatus(
         isCorrect ? "✅ Match confirmed!" : "❌ Match rejected!",
         "success",
@@ -203,6 +263,47 @@ const PopupApp: React.FC = () => {
     } catch (error) {
       console.error("Error confirming match:", error);
       showStatus("Error processing confirmation", "error");
+    }
+  };
+
+  const handleUnmapSong = async () => {
+    if (!currentVideo) return;
+
+    try {
+      setIsLoading(true);
+
+      // Try to unmap using the secure community database
+      if (isSupabaseConfigured()) {
+        CommunityDatabase.init(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        const success = await CommunityDatabase.unmapMapping(
+          currentVideo.videoId,
+        );
+
+        if (success) {
+          showStatus("🗑️ Song mapping removed successfully!", "success");
+          loadCommunityStats(); // Refresh stats
+          setIsCurrentVideoMapped(false); // Update mapping state
+        } else {
+          showStatus(
+            "❌ Could not remove mapping (not found or no permission)",
+            "error",
+          );
+        }
+      } else {
+        // Fallback to local cache removal
+        await chrome.runtime.sendMessage({
+          type: "REMOVE_CACHE_ENTRY",
+          data: { youtubeId: currentVideo.videoId },
+        });
+        showStatus("🗑️ Removed from local cache", "success");
+        loadCacheStats();
+        setIsCurrentVideoMapped(false); // Update mapping state
+      }
+    } catch (error) {
+      console.error("Error unmapping song:", error);
+      showStatus("Error removing mapping", "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -217,19 +318,32 @@ const PopupApp: React.FC = () => {
         chrome.tabs.sendMessage(
           tab.id!,
           { type: "GET_CURRENT_VIDEO" },
-          (response) => {
+          async (response) => {
             if (chrome.runtime.lastError) {
               setCurrentVideo(null);
+              setIsCurrentVideoMapped(false);
               return;
             }
 
             if (response && response.videoData) {
-              setCurrentVideo(response.videoData);
+              // Check if this video is already mapped
+              await checkIfVideoIsMapped(response.videoData.videoId);
+
+              // Get video data with correct confidence score (from database if mapped)
+              const updatedVideoData = await getVideoDataWithDatabaseConfidence(
+                response.videoData,
+              );
+              setCurrentVideo(updatedVideoData);
+            } else {
+              setCurrentVideo(null);
+              setIsCurrentVideoMapped(false);
             }
           },
         );
       } else {
         showStatus("Open a YouTube video to use this extension", "info");
+        setCurrentVideo(null);
+        setIsCurrentVideoMapped(false);
       }
     } catch (error) {
       console.error("Error checking current tab:", error);
@@ -243,78 +357,41 @@ const PopupApp: React.FC = () => {
     }
   };
 
-  const handleSearchCurrent = async () => {
-    setIsLoading(true);
+  const handleOpenAppleMusic = async () => {
     try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-
-      if (!tab.url || !tab.url.includes("youtube.com/watch")) {
-        showStatus("Please open a YouTube video first", "error");
+      if (!currentVideo) {
+        showStatus(
+          "No video detected. Please open a YouTube video first.",
+          "error",
+        );
         return;
       }
 
-      showStatus("Extracting video information...", "info");
+      showStatus("Opening current song on Apple Music...", "info");
 
-      chrome.tabs.sendMessage(
-        tab.id!,
-        { type: "GET_CURRENT_VIDEO" },
-        async (response) => {
-          if (chrome.runtime.lastError) {
-            showStatus("Error: Please refresh the YouTube page", "error");
-            return;
-          }
-
-          if (response && response.videoData) {
-            const videoData = response.videoData;
-            setCurrentVideo(videoData);
-
-            const searchResponse = await chrome.runtime.sendMessage({
-              type: "SEARCH_APPLE_MUSIC",
-              data: {
-                ...videoData,
-                useNativeApp: settings.useNativeApp,
-                aiEnhanced: settings.aiEnhancedSearch,
-              },
-            });
-
-            if (searchResponse.success) {
-              showStatus(
-                settings.useNativeApp
-                  ? "Opened in Apple Music app"
-                  : "Opened Apple Music search",
-                "success",
-              );
-              // Refresh cache stats after search
-              setTimeout(() => loadCacheStats(), 1000);
-            } else {
-              showStatus("Error searching Apple Music", "error");
-            }
-          } else {
-            showStatus("Could not extract video information", "error");
-          }
+      const searchResponse = await chrome.runtime.sendMessage({
+        type: "SEARCH_APPLE_MUSIC",
+        data: {
+          ...currentVideo,
+          useNativeApp: settings.useNativeApp,
+          aiEnhanced: settings.aiEnhancedSearch,
         },
-      );
-    } catch (error) {
-      console.error("Error searching current video:", error);
-      showStatus("Error occurred while searching", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOpenAppleMusic = async () => {
-    try {
-      const url = settings.useNativeApp
-        ? "music://"
-        : "https://music.apple.com";
-      await chrome.tabs.create({
-        url,
-        active: !settings.openInBackground,
       });
-      showStatus("Opened Apple Music", "success");
+
+      if (searchResponse.success) {
+        showStatus(
+          settings.useNativeApp
+            ? "Opened in Apple Music app"
+            : "Opened Apple Music search",
+          "success",
+        );
+        // Refresh cache stats after search
+        setTimeout(() => loadCacheStats(), 1000);
+        // Check if video is now mapped after search
+        setTimeout(() => checkIfVideoIsMapped(currentVideo.videoId), 1500);
+      } else {
+        showStatus("Error searching Apple Music", "error");
+      }
     } catch (error) {
       console.error("Error opening Apple Music:", error);
       showStatus("Error opening Apple Music", "error");
@@ -349,6 +426,8 @@ const PopupApp: React.FC = () => {
             showStatus("Detection test completed", "success");
             if (response.videoData) {
               setCurrentVideo(response.videoData);
+              // Check if this video is mapped
+              checkIfVideoIsMapped(response.videoData.videoId);
             }
           } else {
             showStatus("Detection test failed", "error");
@@ -463,15 +542,6 @@ const PopupApp: React.FC = () => {
 
           <div className="space-y-2">
             <ActionButton
-              onClick={handleSearchCurrent}
-              disabled={isLoading}
-              className="apple-music-gradient"
-              icon={<Search size={16} />}
-            >
-              {isLoading ? "Searching..." : "Search Current Video"}
-            </ActionButton>
-
-            <ActionButton
               onClick={handleOpenAppleMusic}
               icon={<ExternalLink size={16} />}
             >
@@ -497,7 +567,9 @@ const PopupApp: React.FC = () => {
         </div>
 
         {/* Pending Confirmation Section */}
-        {pendingConfirmation && (
+        {pendingConfirmation &&
+          (!currentVideo ||
+            pendingConfirmation.youtubeId === currentVideo.videoId) && (
           <div className="glass-effect rounded-xl p-4 mb-4 border-2 border-yellow-400">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Music size={16} />
@@ -638,7 +710,13 @@ const PopupApp: React.FC = () => {
         )}
 
         {/* Current Video */}
-        {currentVideo && <CurrentVideo videoData={currentVideo} />}
+        {currentVideo && (
+          <CurrentVideo
+            videoData={currentVideo}
+            onUnmap={isCurrentVideoMapped ? handleUnmapSong : undefined}
+            isLoading={isLoading}
+          />
+        )}
 
         {/* Footer */}
         <div className="text-center text-xs opacity-70 mt-4">

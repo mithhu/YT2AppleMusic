@@ -1,12 +1,18 @@
 import React from "react";
-import { Music, User, Youtube } from "lucide-react";
+import { Music, User, Youtube, Trash2 } from "lucide-react";
 import { MusicData } from "../../types";
 
 interface CurrentVideoProps {
   videoData: MusicData;
+  onUnmap?: () => void;
+  isLoading?: boolean;
 }
 
-const CurrentVideo: React.FC<CurrentVideoProps> = ({ videoData }) => {
+const CurrentVideo: React.FC<CurrentVideoProps> = ({
+  videoData,
+  onUnmap,
+  isLoading = false,
+}) => {
   return (
     <div className="glass-effect rounded-xl p-4 mb-4">
       <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -58,6 +64,19 @@ const CurrentVideo: React.FC<CurrentVideoProps> = ({ videoData }) => {
             <span className="text-white/60 text-xs">
               {Math.round(videoData.confidence * 100)}% confident
             </span>
+          </div>
+        )}
+
+        {onUnmap && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <button
+              onClick={onUnmap}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 disabled:bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 hover:text-red-300 disabled:text-red-500 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed"
+            >
+              <Trash2 size={12} />
+              {isLoading ? "Removing..." : "Remove My Mapping"}
+            </button>
           </div>
         )}
       </div>

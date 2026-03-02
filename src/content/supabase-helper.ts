@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_CONFIG, isSupabaseConfigured } from "../config/supabase";
 import { MusicData } from "../types";
-import { CommunityMapping } from "../utils/communityDb";
+import { CommunityMapping } from "../utils/communityDb-secure";
 
 /**
  * Supabase Helper for Content Script

@@ -7,7 +7,7 @@ import {
 import { AppleMusicUtils } from "../utils/appleMusicUtils";
 import { AIUtils } from "../utils/aiUtils";
 import { CacheUtils } from "../utils/cacheUtils";
-import { CommunityDatabase } from "../utils/communityDb";
+import { CommunityDatabase } from "../utils/communityDb-secure";
 import { SUPABASE_CONFIG, isSupabaseConfigured } from "../config/supabase";
 
 class EnhancedBackgroundService {
@@ -18,6 +18,7 @@ class EnhancedBackgroundService {
     appleMusicArtist: string;
     appleMusicSong: string;
   } | null = null;
+  private recentlyProcessedVideos: Set<string> = new Set();
   private settings: ExtensionSettings = {
     autoPlay: true,
     showNotifications: true,
@@ -255,6 +256,18 @@ class EnhancedBackgroundService {
     console.log("🎵 handleMusicDetected called with:", musicData);
     console.log("⚙️ Current settings:", this.settings);
 
+    // Clear any stale pending confirmation from a previous video
+    if (
+      this.currentPendingConfirmation &&
+      this.currentPendingConfirmation.youtubeId !== musicData.videoId
+    ) {
+      console.log(
+        "🗑️ Clearing stale pending confirmation from previous video:",
+        this.currentPendingConfirmation.youtubeId,
+      );
+      this.currentPendingConfirmation = null;
+    }
+
     if (!this.settings.autoPlay) {
       console.log("⏸️ Auto-play is disabled, skipping");
       return;
@@ -262,9 +275,21 @@ class EnhancedBackgroundService {
 
     console.log("🎶 Processing music detection...");
 
-    // Show notification
+    // Skip entirely if this video was already processed (prevents duplicate Apple Music opens)
+    if (this.recentlyProcessedVideos.has(musicData.videoId)) {
+      console.log(
+        "🔕 Skipping entire processing - video already processed:",
+        musicData.videoId,
+      );
+      return;
+    }
+
+    // Mark as processed immediately, before any async work
+    this.markAsRecentlyProcessed(musicData.videoId);
+
+    // Show notification for new videos
     if (this.settings.showNotifications) {
-      console.log("🔔 Showing notification");
+      console.log("🔔 Showing notification for new video");
       this.showNotification(musicData);
     }
 
@@ -359,6 +384,9 @@ class EnhancedBackgroundService {
           if (directSuccess) {
             console.log("Direct song opening successful!");
 
+            // Pause YouTube video after opening Apple Music
+            await this.pauseYouTubeAfterAppleMusic();
+
             // Handle confirmation if needed
             if (result.needsConfirmation && result.confirmationData) {
               console.log(
@@ -380,6 +408,8 @@ class EnhancedBackgroundService {
         const nativeSuccess = await AppleMusicUtils.openInNativeApp(musicData);
         if (nativeSuccess) {
           console.log("Native app search successful!");
+          // Pause YouTube video after opening Apple Music
+          await this.pauseYouTubeAfterAppleMusic();
           return true;
         }
       }
@@ -393,6 +423,8 @@ class EnhancedBackgroundService {
 
       if (webSuccess) {
         console.log("Web browser opening successful!");
+        // Pause YouTube video after opening Apple Music web
+        await this.pauseYouTubeAfterAppleMusic();
       } else {
         console.log("All methods failed!");
       }
@@ -419,18 +451,41 @@ class EnhancedBackgroundService {
 
   private async handleCacheConfirmation(youtubeId: string): Promise<void> {
     console.log(`✅ User confirmed cache entry for YouTube ${youtubeId}`);
+
+    // First confirm the local cache entry
     await CacheUtils.confirmCacheEntry(youtubeId);
 
-    // Also try to confirm in community database
+    // Now add to community database since user confirmed it's correct
     try {
-      // Find the mapping in community database and confirm it
-      const communityMapping = await CommunityDatabase.findMapping(youtubeId);
-      if (communityMapping) {
-        await CommunityDatabase.confirmMapping(communityMapping.id!);
-        console.log(`🌐 Confirmed community mapping ${communityMapping.id}`);
+      // Get the cache entry to extract the mapping details
+      const cacheEntries = await CacheUtils.loadCache();
+      const cacheEntry = cacheEntries.find(
+        (entry) => entry.youtubeId === youtubeId,
+      );
+
+      if (cacheEntry && this.currentPendingConfirmation) {
+        // Add to community database with the confirmed mapping
+        const communityMapping = await CommunityDatabase.addMapping(
+          youtubeId,
+          cacheEntry.appleMusicSongId,
+          this.currentPendingConfirmation.youtubeTitle,
+          cacheEntry.artist, // Use as channel name
+          this.currentPendingConfirmation.appleMusicArtist,
+          this.currentPendingConfirmation.appleMusicSong,
+        );
+
+        if (communityMapping) {
+          console.log(`🌐 Added mapping to community database`);
+          // Now confirm it since user already confirmed it's correct
+          const confirmed = await CommunityDatabase.confirmMapping(youtubeId);
+          if (confirmed) {
+            console.log(`✅ Confirmed community mapping for ${youtubeId}`);
+          }
+        }
       }
     } catch (error) {
-      console.error("❌ Error confirming community mapping:", error);
+      console.error("❌ Error adding to community database:", error);
+      // Don't fail the confirmation if community DB fails
     }
   }
 
@@ -440,14 +495,79 @@ class EnhancedBackgroundService {
 
     // Also try to reject in community database
     try {
-      // Find the mapping in community database and reject it
+      // Check if mapping exists in community database and reject it
       const communityMapping = await CommunityDatabase.findMapping(youtubeId);
       if (communityMapping) {
-        await CommunityDatabase.rejectMapping(communityMapping.id!);
-        console.log(`🌐 Rejected community mapping ${communityMapping.id}`);
+        const rejected = await CommunityDatabase.rejectMapping(youtubeId);
+        if (rejected) {
+          console.log(`🌐 Rejected community mapping for ${youtubeId}`);
+        }
       }
     } catch (error) {
       console.error("❌ Error rejecting community mapping:", error);
+    }
+  }
+
+  /**
+   * Pause YouTube video after successfully opening Apple Music
+   */
+  private async pauseYouTubeAfterAppleMusic(): Promise<void> {
+    try {
+      console.log(
+        "⏸️ Attempting to pause YouTube video after Apple Music opened...",
+      );
+
+      // Add a small delay to ensure Apple Music tab is created first
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Get all tabs to find YouTube tab (not just active one)
+      const tabs = await chrome.tabs.query({});
+      const youtubeTabs = tabs.filter(
+        (tab) => tab.url && tab.url.includes("youtube.com/watch"),
+      );
+
+      console.log(`🔍 Found ${youtubeTabs.length} YouTube tabs`);
+
+      if (youtubeTabs.length > 0) {
+        // Try to pause video in each YouTube tab
+        for (const tab of youtubeTabs) {
+          console.log(`🎯 Attempting to pause video in tab: ${tab.url}`);
+
+          try {
+            // Send message to YouTube content script to pause the video
+            chrome.tabs.sendMessage(
+              tab.id!,
+              { type: "PAUSE_YOUTUBE_VIDEO" },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.log(
+                    `⚠️ Could not pause YouTube video in tab ${tab.id} - content script not available`,
+                  );
+                  return;
+                }
+
+                if (response && response.success) {
+                  console.log(
+                    `✅ YouTube video paused successfully in tab ${tab.id}:`,
+                    response.message,
+                  );
+                } else {
+                  console.log(
+                    `⚠️ Failed to pause YouTube video in tab ${tab.id}:`,
+                    response?.error || "Unknown error",
+                  );
+                }
+              },
+            );
+          } catch (tabError) {
+            console.log(`❌ Error with tab ${tab.id}:`, tabError);
+          }
+        }
+      } else {
+        console.log("ℹ️ No YouTube video tabs found to pause");
+      }
+    } catch (error) {
+      console.error("❌ Error attempting to pause YouTube video:", error);
     }
   }
 
@@ -505,6 +625,16 @@ class EnhancedBackgroundService {
       console.error("Error showing pending confirmations:", error);
       return 0;
     }
+  }
+
+  private markAsRecentlyProcessed(videoId: string): void {
+    this.recentlyProcessedVideos.add(videoId);
+
+    // Clear after 10 minutes so it can be re-processed if user
+    // navigates away and comes back much later
+    setTimeout(() => {
+      this.recentlyProcessedVideos.delete(videoId);
+    }, 10 * 60 * 1000);
   }
 
   private showNotification(musicData: MusicData): void {

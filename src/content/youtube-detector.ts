@@ -163,32 +163,31 @@ class EnhancedYouTubeDetector {
   private setupTitleObserver(): void {
     if (this.isCleanedUp) return;
 
-    // Watch for changes in video title (for when video changes without URL change)
-    this.observer = new MutationObserver((mutations) => {
-      if (this.isCleanedUp) return;
+    // Only observe the video title element, NOT the entire body.
+    // Observing document.body causes re-detection on every scroll, comment load,
+    // recommendation update, etc., which triggers duplicate Apple Music opens.
+    const startObserving = () => {
+      const titleContainer = document.querySelector("h1.ytd-watch-metadata");
+      if (titleContainer) {
+        this.observer = new MutationObserver(() => {
+          if (this.isCleanedUp) return;
+          console.log("🔍 Video title changed, triggering video check");
+          this.debounceCheck();
+        });
 
-      let shouldCheck = false;
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "childList" ||
-          mutation.type === "characterData"
-        ) {
-          shouldCheck = true;
-        }
-      });
-
-      if (shouldCheck) {
-        console.log("🔍 DOM mutation detected, triggering video check");
-        this.debounceCheck();
+        this.observer.observe(titleContainer, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+        console.log("👁️ Observing title element for changes");
+      } else {
+        // Title element not yet in DOM, retry after a short delay
+        setTimeout(() => startObserving(), 2000);
       }
-    });
+    };
 
-    // Start observing
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    startObserving();
   }
 
   private setupMessageListener(): void {
@@ -197,9 +196,20 @@ class EnhancedYouTubeDetector {
         (message: ExtensionMessage, sender, sendResponse) => {
           try {
             switch (message.type) {
-              case "GET_CURRENT_VIDEO":
+              case "GET_CURRENT_VIDEO": {
+                const currentUrlVideoId = this.getVideoId();
+                if (
+                  this.currentVideoData &&
+                  this.currentVideoData.videoId !== currentUrlVideoId
+                ) {
+                  console.log(
+                    `⚠️ Stale video data detected (cached: ${this.currentVideoData.videoId}, current URL: ${currentUrlVideoId}), clearing`,
+                  );
+                  this.currentVideoData = null;
+                }
                 sendResponse({ videoData: this.currentVideoData });
                 break;
+              }
 
               case "TEST_DETECTION":
                 this.checkCurrentVideo()
@@ -232,6 +242,10 @@ class EnhancedYouTubeDetector {
 
               case "CONTENT_SUPABASE_CONFIRM_MAPPING":
                 this.handleSupabaseConfirmMapping(message.data, sendResponse);
+                return true;
+
+              case "PAUSE_YOUTUBE_VIDEO":
+                this.pauseYouTubeVideo(sendResponse);
                 return true;
 
               default:
@@ -309,8 +323,26 @@ class EnhancedYouTubeDetector {
       this.currentVideoData = null;
       console.log("🗑️ Cleared cached video data for new video");
 
-      // Wait a bit for the page to update, then check new video
-      setTimeout(() => this.checkCurrentVideo(), 1000);
+      // Disconnect old title observer (YouTube SPA may replace the element)
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
+
+      // Wait for the page to update, then check new video.
+      // YouTube's SPA can take 1-3 seconds to update the DOM.
+      setTimeout(() => {
+        this.checkCurrentVideo();
+        // Re-setup title observer for the new page's title element
+        this.setupTitleObserver();
+      }, 1500);
+      // Secondary check in case the first was too early
+      setTimeout(() => {
+        if (!this.currentVideoData) {
+          console.log("🔄 Secondary check - first check may have been too early");
+          this.checkCurrentVideo();
+        }
+      }, 3500);
     }
   }
 
@@ -364,13 +396,71 @@ class EnhancedYouTubeDetector {
     }
   }
 
+  /**
+   * Pause the current YouTube video
+   */
+  private pauseYouTubeVideo(sendResponse: (response: any) => void): void {
+    try {
+      console.log("⏸️ Attempting to pause YouTube video...");
+
+      // Try multiple selectors for the video element
+      const videoSelectors = [
+        "video[src]", // Direct video element with src
+        "video", // Any video element
+        ".html5-video-player video", // YouTube's video player
+        "#movie_player video", // YouTube's movie player
+      ];
+
+      let videoElement: HTMLVideoElement | null = null;
+
+      for (const selector of videoSelectors) {
+        videoElement = document.querySelector(selector) as HTMLVideoElement;
+        if (videoElement && !videoElement.paused) {
+          break;
+        }
+      }
+
+      if (videoElement && !videoElement.paused) {
+        videoElement.pause();
+        console.log("✅ YouTube video paused successfully");
+        sendResponse({ success: true, message: "Video paused" });
+      } else if (videoElement && videoElement.paused) {
+        console.log("ℹ️ YouTube video is already paused");
+        sendResponse({ success: true, message: "Video already paused" });
+      } else {
+        console.log("❌ No playing video found to pause");
+        sendResponse({ success: false, error: "No playing video found" });
+      }
+    } catch (error) {
+      console.error("❌ Error pausing YouTube video:", error);
+      sendResponse({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
   private async extractVideoData(): Promise<MusicData | null> {
     try {
+      const videoId = this.getVideoId();
+      if (!videoId) {
+        return null;
+      }
+
       // Wait for elements to be available
       await this.waitForElement(
         "h1.ytd-watch-metadata yt-formatted-string",
         5000,
       );
+
+      // Re-check videoId after waiting -- the URL may have changed during the wait
+      const currentVideoId = this.getVideoId();
+      if (currentVideoId !== videoId) {
+        console.log(
+          `⚠️ Video ID changed during extraction (${videoId} -> ${currentVideoId}), aborting`,
+        );
+        return null;
+      }
 
       const titleElement = document.querySelector(
         "h1.ytd-watch-metadata yt-formatted-string",
@@ -386,7 +476,6 @@ class EnhancedYouTubeDetector {
 
       const title = titleElement.textContent?.trim();
       const channel = channelElement?.textContent?.trim();
-      const videoId = this.getVideoId();
 
       if (!title) {
         return null;
@@ -396,7 +485,7 @@ class EnhancedYouTubeDetector {
       const { artist, songTitle } = this.parseTitle(title, channel);
 
       return {
-        videoId,
+        videoId: currentVideoId,
         title,
         channel: channel || "Unknown Channel",
         artist,
@@ -813,10 +902,11 @@ class EnhancedYouTubeDetector {
   }
 
   private isDifferentVideo(videoData: MusicData): boolean {
+    // Only consider it a different video if the video ID actually changed.
+    // Never re-trigger for the same video ID regardless of time elapsed.
     const isDifferent =
       !this.currentVideoData ||
-      this.currentVideoData.videoId !== videoData.videoId ||
-      this.currentVideoData.timestamp < Date.now() - 30000; // 30 second cooldown
+      this.currentVideoData.videoId !== videoData.videoId;
 
     console.log(`🔍 Checking if video is different:`, {
       hasCurrentData: !!this.currentVideoData,

@@ -4,7 +4,7 @@ import {
   AppleMusicLinkResult,
 } from "../types";
 import { CacheUtils } from "./cacheUtils";
-import { CommunityDatabase } from "./communityDb";
+import { CommunityDatabase } from "./communityDb-secure";
 
 export class AppleMusicUtils {
   private static readonly APPLE_MUSIC_API_BASE =
@@ -36,16 +36,12 @@ export class AppleMusicUtils {
         ];
         console.log(`🎯 Using ONLY itmss scheme for song ID: ${songId}`);
       } else {
-        // Fallback to search schemes
-        schemes = [
-          // Method 1: Direct Apple Music app search
-          `music://search?term=${encodeURIComponent(optimizedQuery)}`,
-          // Method 2: Apple Music web search
-          `https://music.apple.com/search?term=${encodeURIComponent(
-            optimizedQuery,
-          )}`,
-        ];
-        console.log(`🔍 Using search schemes for native app`);
+        // No direct song found - don't create search URLs for non-music content
+        console.log(`❌ No direct song found for: ${optimizedQuery}`);
+        console.log(
+          `🚫 Skipping search URLs to avoid opening non-music content`,
+        );
+        return false;
       }
 
       console.log(`Trying to open Apple Music with query: "${optimizedQuery}"`);
@@ -99,44 +95,27 @@ export class AppleMusicUtils {
     inBackground = false,
   ): Promise<boolean> {
     try {
-      const optimizedQuery = this.generateOptimizedQuery(musicData);
+      // First try to get a direct song link
+      const result = await this.getDirectLink(
+        musicData.artist,
+        musicData.songTitle,
+        musicData.videoId,
+      );
 
-      // Try different web URLs for better results
-      const webUrls = [
-        // Primary: Apple Music web search
-        `${this.APPLE_MUSIC_WEB_BASE}/search?term=${encodeURIComponent(
-          optimizedQuery,
-        )}`,
-
-        // Fallback: iTunes web search
-        `https://music.apple.com/us/search?term=${encodeURIComponent(
-          optimizedQuery,
-        )}`,
-      ];
-
-      console.log(`Opening Apple Music web with query: "${optimizedQuery}"`);
-      console.log("Generated Web URLs:");
-      webUrls.forEach((url, index) => {
-        console.log(`  ${index + 1}. ${url}`);
-      });
-
-      for (const url of webUrls) {
-        try {
-          console.log(`🌐 Trying web URL: ${url}`);
-          await chrome.tabs.create({
-            url,
-            active: !inBackground,
-          });
-
-          console.log(`✅ Successfully opened web URL: ${url}`);
-          return true;
-        } catch (error) {
-          console.log(`Failed to open web URL: ${url}`, error);
-          continue;
-        }
+      if (result && result.url && result.url.includes("/song/")) {
+        // We have a direct song link - open it in web browser
+        console.log(`🎯 Opening direct song in web browser: ${result.url}`);
+        await chrome.tabs.create({
+          url: result.url,
+          active: !inBackground,
+        });
+        return true;
+      } else {
+        // No direct song found - don't create search URLs for non-music content
+        console.log(`❌ No direct song found for web browser opening`);
+        console.log(`🚫 Not opening search URLs to avoid non-music content`);
+        return false;
       }
-
-      return false;
     } catch (error) {
       console.error("Error opening Apple Music web:", error);
       return false;
@@ -233,18 +212,18 @@ export class AppleMusicUtils {
         // Check community database if not in local cache
         const communityMapping = await CommunityDatabase.findMapping(youtubeId);
         if (communityMapping) {
-          const communityUrl = `${this.APPLE_MUSIC_WEB_BASE}/us/song/${communityMapping.apple_music_id}`;
+          const communityUrl = `${this.APPLE_MUSIC_WEB_BASE}/us/song/${communityMapping.appleMusicId}`;
           console.log(`🌐 Using community database mapping: ${communityUrl}`);
           console.log(
             `📊 Community confidence: ${(
-              communityMapping.confidence_score * 100
+              communityMapping.confidenceScore * 100
             ).toFixed(1)}%`,
           );
 
           // Add to local cache as confirmed (since it's from community DB)
           await CacheUtils.addCacheEntry(
             youtubeId,
-            communityMapping.apple_music_id,
+            communityMapping.appleMusicId,
             {
               artist,
               songTitle,
@@ -253,7 +232,7 @@ export class AppleMusicUtils {
               channel: "",
               url: "",
               timestamp: Date.now(),
-              confidence: communityMapping.confidence_score,
+              confidence: communityMapping.confidenceScore,
             },
           );
           await CacheUtils.confirmCacheEntry(youtubeId);
@@ -315,25 +294,7 @@ export class AppleMusicUtils {
                 },
               );
 
-              // Add to community database as well
-              await CommunityDatabase.addMapping(
-                youtubeId,
-                song.trackId.toString(),
-                {
-                  artist,
-                  songTitle,
-                  videoId: youtubeId,
-                  title: `${artist} - ${songTitle}`,
-                  channel: "",
-                  url: "",
-                  timestamp: Date.now(),
-                  confidence: 1,
-                },
-                song.artistName,
-                song.trackName,
-              );
-
-              // Return confirmation data for background script to handle
+              // NOTE: Do NOT add to community database yet - wait for user confirmation
               console.log(
                 "🤔 New song needs confirmation - will be handled by background script",
               );
@@ -359,17 +320,12 @@ export class AppleMusicUtils {
         console.error("iTunes API failed, falling back to search:", apiError);
       }
 
-      // Fallback to Apple Music search URL
-      const searchUrl = `${
-        this.APPLE_MUSIC_WEB_BASE
-      }/search?term=${encodeURIComponent(searchQuery)}`;
-      console.log(`🍎 Fallback to Apple Music search URL: ${searchUrl}`);
-      return {
-        url: searchUrl,
-        needsConfirmation: false,
-        confirmationData: null,
-        isCached: false,
-      };
+      // No direct song found - don't create search URLs for non-music content
+      console.log(`❌ No song found in iTunes API for: ${searchQuery}`);
+      console.log(
+        `🚫 Not creating search URL to avoid opening non-music content`,
+      );
+      return null;
     } catch (error) {
       console.error("Error getting Apple Music link:", error);
       return null;
@@ -412,14 +368,12 @@ export class AppleMusicUtils {
           ];
           console.log(`🎯 Using ONLY itmss scheme for song ID: ${songId}`);
         } else {
-          // Fallback to search schemes
-          schemes = [
-            // Search in Apple Music app
-            `music://search?term=${searchQuery}`,
-            // Apple Music web search link
-            searchLink,
-          ];
-          console.log(`🔍 Using search schemes`);
+          // No direct song found - don't create search URLs for non-music content
+          console.log(`❌ No direct song found, not creating search URLs`);
+          console.log(
+            `🚫 Avoiding search URLs to prevent opening non-music content`,
+          );
+          return false;
         }
 
         const searchSchemes = schemes;
