@@ -83,3 +83,37 @@ Done — the website's "Get Extension" link auto-points to the latest release.
 - Always build fresh (`npm run build`) before zipping to make sure the dist folder is up to date.
 - If you need to fix a release, delete it first with `gh release delete`, then recreate it.
 - You can also edit an existing release on the GitHub website by going to the release page and clicking the pencil (edit) icon.
+
+---
+
+## Daily Cron Job (Database Seeding)
+
+The website includes a daily cron job that automatically grows the community database by mapping Apple Music's top 100 songs to YouTube videos.
+
+### How it works
+
+1. Runs daily at 6:00 AM UTC via Vercel Cron
+2. Fetches Apple Music top 100 songs (free RSS feed, no API key)
+3. For each song not already in the DB, searches YouTube for the video
+4. Saves the YouTube ID to Apple Music ID mapping in Supabase
+
+### Setup (one-time)
+
+1. Go to your Vercel project **Settings > Environment Variables**
+2. Add a new variable:
+   - **Name**: `CRON_SECRET`
+   - **Value**: any random string (e.g. generate one with `openssl rand -hex 32`)
+   - **Environment**: Production
+3. Deploy — Vercel will pick up `vercel.json` and register the cron
+
+### Manual trigger (for testing)
+
+```bash
+curl http://localhost:3000/api/cron/seed-db
+```
+
+Or on production:
+
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-site.vercel.app/api/cron/seed-db
+```
