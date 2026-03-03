@@ -3,6 +3,8 @@ import { findMappingByYoutubeId, addMappingFromWebsite } from "@/lib/supabase";
 import { searchItunes, getArtworkUrl } from "@/lib/itunes";
 import {
   extractYoutubeId,
+  extractPlaylistId,
+  getPlaylistVideoIds,
   getYoutubeInfo,
   getYoutubeUrl,
   cleanTitle,
@@ -115,26 +117,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (urls.length > MAX_URLS) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_URLS} URLs per request` },
-        { status: 400 },
-      );
-    }
-
     const videoIds: string[] = [];
     const invalid: string[] = [];
 
     for (const url of urls) {
-      const id = extractYoutubeId(url.trim());
+      const trimmed = url.trim();
+      const id = extractYoutubeId(trimmed);
       if (id) {
         videoIds.push(id);
-      } else {
-        invalid.push(url);
+        continue;
       }
+
+      const playlistId = extractPlaylistId(trimmed);
+      if (playlistId) {
+        const playlistIds = await getPlaylistVideoIds(playlistId);
+        videoIds.push(...playlistIds);
+        continue;
+      }
+
+      invalid.push(trimmed);
     }
 
-    const unique = [...new Set(videoIds)];
+    const unique = [...new Set(videoIds)].slice(0, MAX_URLS);
 
     // Process in batches of 5 to avoid overwhelming external APIs
     const BATCH_SIZE = 5;

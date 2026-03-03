@@ -64,6 +64,43 @@ export async function searchYoutubeVideoId(
   }
 }
 
+/**
+ * Extract a YouTube playlist ID from a URL.
+ * Supports youtube.com/playlist?list=... and &list=... in watch URLs.
+ */
+export function extractPlaylistId(input: string): string | null {
+  const match = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Fetch video IDs from a YouTube playlist by scraping the playlist page HTML.
+ * No API key needed. Returns up to ~200 unique video IDs.
+ */
+export async function getPlaylistVideoIds(
+  playlistId: string,
+): Promise<string[]> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/playlist?list=${playlistId}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        },
+      },
+    );
+    if (!res.ok) return [];
+    const html = await res.text();
+    const ids: string[] = [];
+    const matches = html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g);
+    for (const m of matches) ids.push(m[1]);
+    return [...new Set(ids)];
+  } catch {
+    return [];
+  }
+}
+
 export function cleanTitle(title: string): string {
   return title
     .replace(/\s*\(.*$/gi, "")

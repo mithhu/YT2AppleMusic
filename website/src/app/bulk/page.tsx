@@ -5,29 +5,54 @@ import Link from "next/link";
 import type { BulkItem } from "../api/bulk/route";
 import { SUPPORT_URL } from "@/lib/site";
 
-function extractAllVideoIds(text: string): string[] {
-  const urls: string[] = [];
+function isPlaylistUrl(text: string): boolean {
+  return /[?&]list=[a-zA-Z0-9_-]+/.test(text);
+}
 
-  // Extract YouTube playlist page HTML video IDs (in case someone pastes HTML)
-  const videoIdMatches = text.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g);
-  for (const m of videoIdMatches) urls.push(m[1]);
+function parseInput(text: string): { videoIds: string[]; rawUrls: string[] } {
+  const videoIds: string[] = [];
+  const rawUrls: string[] = [];
 
-  // Standard YouTube URLs
-  const urlMatches = text.matchAll(
-    /(?:youtube\.com\/watch\?[^\s]*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/g,
-  );
-  for (const m of urlMatches) urls.push(m[1]);
-
-  // Bare 11-char IDs on their own line
   const lines = text.split(/[\n,]+/);
   for (const line of lines) {
     const trimmed = line.trim();
-    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
-      urls.push(trimmed);
+    if (!trimmed) continue;
+
+    // Playlist URL — pass to server for resolution
+    if (isPlaylistUrl(trimmed)) {
+      rawUrls.push(trimmed);
+      continue;
     }
+
+    // Standard YouTube URL with v= parameter
+    const vMatch = trimmed.match(
+      /(?:youtube\.com\/watch\?[^\s]*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    );
+    if (vMatch) {
+      videoIds.push(vMatch[1]);
+      continue;
+    }
+
+    // Bare 11-char video ID
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+      videoIds.push(trimmed);
+      continue;
+    }
+
+    // videoId JSON format (e.g. from pasting HTML)
+    const jsonMatches = trimmed.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g);
+    for (const m of jsonMatches) videoIds.push(m[1]);
   }
 
-  return [...new Set(urls)];
+  return { videoIds: [...new Set(videoIds)], rawUrls };
+}
+
+function getInputSummary(text: string): string {
+  const { videoIds, rawUrls } = parseInput(text);
+  const parts: string[] = [];
+  if (videoIds.length > 0) parts.push(`${videoIds.length} video(s)`);
+  if (rawUrls.length > 0) parts.push(`${rawUrls.length} playlist(s)`);
+  return parts.length > 0 ? parts.join(" + ") + " detected" : "";
 }
 
 function getPreferredUrl(
@@ -91,9 +116,9 @@ export default function BulkPage() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const videoIds = extractAllVideoIds(input);
-    if (videoIds.length === 0) {
-      setError("No YouTube video IDs found. Paste YouTube URLs, one per line.");
+    const { videoIds, rawUrls } = parseInput(input);
+    if (videoIds.length === 0 && rawUrls.length === 0) {
+      setError("No YouTube video IDs or playlists found. Paste YouTube URLs, one per line.");
       return;
     }
 
@@ -108,9 +133,10 @@ export default function BulkPage() {
     setStats(null);
     stopPreview();
 
-    const urls = videoIds.map(
-      (id) => `https://www.youtube.com/watch?v=${id}`,
-    );
+    const urls = [
+      ...videoIds.map((id) => `https://www.youtube.com/watch?v=${id}`),
+      ...rawUrls,
+    ];
     setProgress({ sent: urls.length, total: urls.length });
 
     try {
@@ -254,7 +280,7 @@ export default function BulkPage() {
                 style={{ color: "rgba(241,245,249,0.35)" }}
               >
                 {input.trim()
-                  ? `${extractAllVideoIds(input).length} video(s) detected`
+                  ? getInputSummary(input) || "Paste YouTube URLs or playlist links"
                   : "Supports YouTube URLs, playlist links, and bare video IDs"}
               </span>
               <button
@@ -482,7 +508,7 @@ export default function BulkPage() {
                 {
                   icon: "📋",
                   title: "Playlist support",
-                  desc: "Paste video IDs extracted from any YouTube playlist",
+                  desc: "Paste any YouTube playlist URL and we'll extract all songs automatically",
                 },
                 {
                   icon: "⚡",
