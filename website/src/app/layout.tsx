@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 const SITE_URL = getSiteUrl();
 const SITE_NAME = "YT2Apple Music";
 const SITE_DESCRIPTION =
-  "Upgrade from compressed YouTube audio to Apple Music lossless quality. Paste a YouTube link or search any song — get instant Apple Music links with hi-res lossless and Dolby Atmos. Free, no signup.";
+  "Switch from compressed YouTube audio to Apple Music lossless quality. Paste a YouTube link or search any song — get instant Apple Music links with hi-res lossless and Dolby Atmos. Free, no signup.";
 
 export const metadata: Metadata = {
   title: {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     "Apple Music song finder",
     "best audio quality streaming",
     "Apple Music 24-bit 192kHz",
-    "upgrade YouTube audio quality",
+    "YouTube audio to lossless",
     "free music link converter",
   ],
   authors: [{ name: "YT2Apple Music" }],
@@ -112,7 +112,7 @@ export default function RootLayout({
       priceCurrency: "USD",
     },
     featureList: [
-      "Upgrade YouTube compressed audio to Apple Music lossless",
+      "Switch from YouTube compressed audio to Apple Music lossless",
       "Search songs across Apple Music and YouTube",
       "Open songs directly in Apple Music app with hi-res lossless",
       "Dolby Atmos Spatial Audio support",

@@ -324,11 +324,10 @@ export default function CatchAllPage() {
             {/* How it works */}
             <div className="text-center mt-8 pt-6" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
               <p className="text-xs mb-1" style={{ color: "rgba(241,245,249,0.35)" }}>
-                Tip: Replace <code className="px-1 py-0.5 rounded text-[10px]" style={{ background: "rgba(255,255,255,0.06)" }}>youtube.com</code> with{" "}
-                <code className="px-1 py-0.5 rounded text-[10px]" style={{ background: "rgba(255,255,255,0.06)" }}>yt2apple.vercel.app</code> in any YouTube URL
+                Tip: Add <code className="px-1 py-0.5 rounded text-[10px]" style={{ background: "rgba(255,255,255,0.06)" }}>yt2apple.vercel.app/</code> before any YouTube URL
               </p>
               <p className="text-[10px]" style={{ color: "rgba(241,245,249,0.25)" }}>
-                e.g. yt2apple.vercel.app/watch?v=dQw4w9WgXcQ
+                e.g. yt2apple.vercel.app/youtube.com/watch?v=dQw4w9WgXcQ
               </p>
             </div>
           </div>

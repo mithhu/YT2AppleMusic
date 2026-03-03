@@ -110,7 +110,7 @@ export default function Home() {
               onMouseOver={(e) => (e.currentTarget.style.color = "rgba(241,245,249,0.6)")}
               onMouseOut={(e) => (e.currentTarget.style.color = "rgba(241,245,249,0.35)")}
             >
-              Why upgrade?
+              Why lossless?
             </a>
             <a
               href={SUPPORT_URL}
@@ -205,7 +205,7 @@ export default function Home() {
             <div className="flex items-center gap-2 mb-5">
               <span className="text-xs" style={{ color: "rgba(241,245,249,0.35)" }}>
                 {results.type === "youtube_url"
-                  ? "YouTube URL detected — upgrade to lossless"
+                  ? "YouTube URL detected — lossless version found"
                   : `Results for "${results.query}"`}
               </span>
               {results.source === "community_db" && (
@@ -284,7 +284,7 @@ export default function Home() {
               </div>
             </div>
             <p className="max-w-xs mx-auto leading-relaxed" style={{ color: "rgba(241,245,249,0.35)" }}>
-              Upgrade from compressed YouTube audio to Apple Music lossless quality
+              Go from compressed YouTube audio to Apple Music lossless quality
             </p>
           </div>
         )}
@@ -416,7 +416,7 @@ export default function Home() {
               <div>
                 <h3 className="text-sm font-bold mb-2 text-white">Pro tip: The URL shortcut</h3>
                 <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(241,245,249,0.6)" }}>
-                  Watching a song on YouTube? Just replace <strong className="text-white">youtube.com</strong> in the address bar with <strong className="text-white">yt2apple.vercel.app</strong> and hit Enter. Instant lossless upgrade.
+                  Watching a song on YouTube? Just add <strong className="text-white">yt2apple.vercel.app/</strong> before the URL and hit Enter. No need to delete anything — just prefix it. Instant lossless.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-[11px] font-mono">
@@ -425,7 +425,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-2 text-[11px] font-mono">
                     <span className="px-2 py-1 rounded" style={{ background: "rgba(52,211,153,0.1)", color: "#6ee7b7" }}>After</span>
-                    <span style={{ color: "rgba(241,245,249,0.4)" }}>yt2apple.vercel.app/watch?v=dQw4w9WgXcQ</span>
+                    <span style={{ color: "rgba(241,245,249,0.4)" }}>yt2apple.vercel.app/youtube.com/watch?v=dQw4w9WgXcQ</span>
                   </div>
                 </div>
               </div>
@@ -481,7 +481,7 @@ export default function Home() {
                 { q: "Is this free?", a: "Yes, completely free with no daily limits, no signup, and no premium plans. We use the iTunes Search API and a community-powered database." },
                 { q: "Does the Apple Music link support lossless playback?", a: "Yes — we open songs in the native Apple Music app (not the web player). The native app supports Lossless, Hi-Res Lossless, and Dolby Atmos Spatial Audio, depending on your settings and hardware." },
                 { q: "What about Spatial Audio and Dolby Atmos?", a: "Many songs on Apple Music support Dolby Atmos Spatial Audio, which creates an immersive 3D listening experience. YouTube doesn't offer this. When you open a song from YT2Apple Music, Spatial Audio plays automatically if the track supports it and you have compatible headphones." },
-                { q: "How is this different from Song.link or Odesli?", a: "Song.link creates universal links but doesn't let you search by song name, doesn't open the native Apple Music app (so no lossless), and isn't designed for audiophiles. YT2Apple Music is purpose-built for people who want to upgrade from compressed YouTube audio to lossless Apple Music quality." },
+                { q: "How is this different from Song.link or Odesli?", a: "Song.link creates universal links but doesn't let you search by song name, doesn't open the native Apple Music app (so no lossless), and isn't designed for audiophiles. YT2Apple Music is purpose-built for people who want to go from compressed YouTube audio to lossless Apple Music quality." },
               ].map((item) => (
                 <details key={item.q} className="group card px-5 py-4">
                   <summary className="text-sm font-medium cursor-pointer text-white/80 hover:text-white transition-colors flex items-center">

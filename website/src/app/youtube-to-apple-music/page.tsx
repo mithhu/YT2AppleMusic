@@ -4,7 +4,7 @@ import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title:
-    "YouTube to Apple Music - Upgrade to Lossless Audio | Free Converter",
+    "YouTube to Apple Music - Switch to Lossless Audio | Free Converter",
   description:
     "YouTube compresses audio to ~128kbps. Apple Music offers 24-bit/192kHz lossless. Convert any YouTube link to Apple Music and hear the difference. Free, instant, no signup.",
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "YouTube 128kbps vs Apple Music lossless",
     "hi-res audio streaming",
     "Apple Music Dolby Atmos",
-    "upgrade YouTube audio",
+    "YouTube audio to lossless",
   ],
   alternates: {
     canonical: "/youtube-to-apple-music",
@@ -68,7 +68,7 @@ export default function YouTubeToAppleMusicPage() {
         </p>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-5 leading-tight text-white">
           YouTube to Apple Music:{" "}
-          <span className="gradient-text">Upgrade to Lossless Audio</span>
+          <span className="gradient-text">Switch to Lossless Audio</span>
         </h1>
         <p className="mb-6 leading-relaxed max-w-2xl" style={{ color: "rgba(241,245,249,0.6)" }}>
           You found a great song on YouTube. But YouTube compresses audio to
@@ -243,7 +243,7 @@ export default function YouTubeToAppleMusicPage() {
               <circle cx="6" cy="18" r="3"/>
               <circle cx="18" cy="16" r="3"/>
             </svg>
-            Upgrade to lossless now
+            Try it now — go lossless
           </Link>
         </div>
       </main>
