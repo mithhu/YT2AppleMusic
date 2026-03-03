@@ -5,18 +5,22 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import type { SearchResult, AppleMusicResult } from "../api/search/route";
 
-function extractVideoId(path: string): string | null {
-  const raw = decodeURIComponent(path.replace(/^\/+/, ""));
+function extractVideoId(fullUrl: string): string | null {
+  const raw = decodeURIComponent(fullUrl);
 
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /^([a-zA-Z0-9_-]{11})$/,
-  ];
+  // ?v= or &v= anywhere in the string (covers watch?v=... even when in path)
+  const vParam = raw.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (vParam) return vParam[1];
 
-  for (const p of patterns) {
-    const m = raw.match(p);
-    if (m) return m[1];
-  }
+  // youtu.be/ID or youtube.com/embed/ID
+  const shortOrEmbed = raw.match(
+    /(?:youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+  );
+  if (shortOrEmbed) return shortOrEmbed[1];
+
+  // Bare 11-char video ID as the only path segment
+  const bareId = raw.match(/\/([a-zA-Z0-9_-]{11})\/?$/);
+  if (bareId) return bareId[1];
 
   return null;
 }
@@ -29,8 +33,7 @@ function getPreferredUrl(track: AppleMusicResult): string {
 }
 
 export default function CatchAllPage() {
-  const pathname = usePathname();
-  const videoId = extractVideoId(pathname);
+  usePathname(); // trigger re-render on client navigation
 
   const [results, setResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,9 @@ export default function CatchAllPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    const fullUrl = window.location.href;
+    const videoId = extractVideoId(fullUrl);
+
     if (!videoId) {
       setLoading(false);
       setError("No YouTube video found in this URL.");
@@ -54,7 +60,7 @@ export default function CatchAllPage() {
       .then((data: SearchResult) => setResults(data))
       .catch(() => setError("Could not find this song. Try searching manually."))
       .finally(() => setLoading(false));
-  }, [videoId]);
+  }, []);
 
   useEffect(() => {
     return () => {
