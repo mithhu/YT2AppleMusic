@@ -9,4 +9,4 @@ export function getSiteUrl(): string {
   return envUrl.replace(/\/+$/, "");
 }
 
-export const SUPPORT_URL = "https://buymeacoffee.com/mithhu";
+export const SUPPORT_URL = "https://buymeacoffee.com/mithhu1";

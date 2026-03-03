@@ -405,6 +405,33 @@ export default function Home() {
             ))}
           </div>
 
+          {/* URL trick */}
+          <div className="card p-6 md:p-8 mb-16" style={{ background: "linear-gradient(135deg, rgba(244,63,94,0.06), rgba(52,211,153,0.04))" }}>
+            <div className="flex items-start gap-4">
+              <div className="icon-box icon-box-accent flex-shrink-0 mt-1">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb7185" strokeWidth="1.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold mb-2 text-white">Pro tip: The URL shortcut</h3>
+                <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(241,245,249,0.6)" }}>
+                  Watching a song on YouTube? Just replace <strong className="text-white">youtube.com</strong> in the address bar with <strong className="text-white">yt2apple.vercel.app</strong> and hit Enter. Instant lossless upgrade.
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-mono">
+                    <span className="px-2 py-1 rounded" style={{ background: "rgba(249,115,22,0.1)", color: "#fdba74" }}>Before</span>
+                    <span style={{ color: "rgba(241,245,249,0.4)" }}>youtube.com/watch?v=dQw4w9WgXcQ</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] font-mono">
+                    <span className="px-2 py-1 rounded" style={{ background: "rgba(52,211,153,0.1)", color: "#6ee7b7" }}>After</span>
+                    <span style={{ color: "rgba(241,245,249,0.4)" }}>yt2apple.vercel.app/watch?v=dQw4w9WgXcQ</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Why this tool */}
           <div className="mb-16">
             <h2 className="text-xl font-bold mb-6 text-white">Why YT2Apple Music?</h2>
