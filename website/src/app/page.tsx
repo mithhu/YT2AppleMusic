@@ -530,6 +530,7 @@ export default function Home() {
               { href: SUPPORT_URL, text: "☕ Buy me a coffee", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic/releases/latest", text: "Chrome Extension", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic", text: "GitHub", external: true },
+              { href: "/privacy", text: "Privacy" },
             ].map((link) => (
               <a
                 key={link.text}

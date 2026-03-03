@@ -102,6 +102,9 @@ temp/
 *.zip
 web-ext-artifacts/
 
+# Chrome Web Store assets (for manual upload only)
+store-assets/
+
 # Development files (keep in repo but ignore if needed)
 # Uncomment these if you don't want to track them:
 # *.md
