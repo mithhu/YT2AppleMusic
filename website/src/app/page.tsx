@@ -104,6 +104,15 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <a
+              href="/bulk"
+              className="text-xs transition-colors"
+              style={{ color: "rgba(241,245,249,0.35)" }}
+              onMouseOver={(e) => (e.currentTarget.style.color = "rgba(241,245,249,0.6)")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "rgba(241,245,249,0.35)")}
+            >
+              Bulk convert
+            </a>
+            <a
               href="/youtube-to-apple-music"
               className="text-xs transition-colors"
               style={{ color: "rgba(241,245,249,0.35)" }}
@@ -505,6 +514,7 @@ export default function Home() {
           </p>
           <div className="flex items-center gap-5">
             {[
+              { href: "/bulk", text: "Bulk convert" },
               { href: "/youtube-to-apple-music", text: "Why lossless?" },
               { href: SUPPORT_URL, text: "☕ Buy me a coffee", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic/releases/latest", text: "Chrome Extension", external: true },
