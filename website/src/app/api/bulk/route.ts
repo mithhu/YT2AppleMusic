@@ -10,6 +10,8 @@ import {
   cleanTitle,
 } from "@/lib/youtube";
 
+export const maxDuration = 60;
+
 export interface BulkItem {
   youtubeId: string;
   youtubeTitle: string;

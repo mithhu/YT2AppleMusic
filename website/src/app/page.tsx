@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type {
   SearchResult,
   AppleMusicResult,
@@ -19,7 +20,12 @@ function getPreferredAppleMusicUrl(track: AppleMusicResult): string {
   return isMobileDevice ? track.url : track.nativeUrl;
 }
 
+function isPlaylistUrl(text: string): boolean {
+  return /youtube\.com\/.*[?&]list=[a-zA-Z0-9_-]+/.test(text) && !/[?&]v=/.test(text);
+}
+
 export default function Home() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +50,11 @@ export default function Home() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+
+    if (isPlaylistUrl(query.trim())) {
+      router.push(`/bulk?playlist=${encodeURIComponent(query.trim())}`);
+      return;
+    }
 
     setLoading(true);
     setError(null);

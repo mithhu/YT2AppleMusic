@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { BulkItem } from "../api/bulk/route";
 import { SUPPORT_URL } from "@/lib/site";
@@ -74,6 +75,15 @@ interface BulkResponse {
 }
 
 export default function BulkPage() {
+  return (
+    <Suspense>
+      <BulkPageInner />
+    </Suspense>
+  );
+}
+
+function BulkPageInner() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<{
@@ -92,10 +102,6 @@ export default function BulkPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -112,11 +118,8 @@ export default function BulkPage() {
     setPlayingPreview(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const { videoIds, rawUrls } = parseInput(input);
+  const processBulk = useCallback(async (text: string) => {
+    const { videoIds, rawUrls } = parseInput(text);
     if (videoIds.length === 0 && rawUrls.length === 0) {
       setError("No YouTube video IDs or playlists found. Paste YouTube URLs, one per line.");
       return;
@@ -166,6 +169,23 @@ export default function BulkPage() {
       setLoading(false);
       setProgress(null);
     }
+  }, []);
+
+  // Auto-process playlist URL from query param (redirected from homepage)
+  useEffect(() => {
+    const playlist = searchParams.get("playlist");
+    if (playlist) {
+      setInput(playlist);
+      processBulk(playlist);
+    } else {
+      textareaRef.current?.focus();
+    }
+  }, [searchParams, processBulk]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    processBulk(input.trim());
   };
 
   const matchedResults = results?.filter((r) => r.source !== "not_found") || [];
