@@ -6,6 +6,7 @@ import type {
   AppleMusicResult,
   YouTubeResult,
 } from "./api/search/route";
+import { SUPPORT_URL } from "@/lib/site";
 
 function getPreferredAppleMusicUrl(track: AppleMusicResult): string {
   if (typeof navigator === "undefined") {
@@ -110,6 +111,15 @@ export default function Home() {
               onMouseOut={(e) => (e.currentTarget.style.color = "rgba(241,245,249,0.35)")}
             >
               Why upgrade?
+            </a>
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{ background: "rgba(255,213,79,0.1)", border: "1px solid rgba(255,213,79,0.2)", color: "#ffd54f" }}
+            >
+              ☕ Support
             </a>
             <a
               href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
@@ -469,6 +479,7 @@ export default function Home() {
           <div className="flex items-center gap-5">
             {[
               { href: "/youtube-to-apple-music", text: "Why lossless?" },
+              { href: SUPPORT_URL, text: "☕ Buy me a coffee", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic/releases/latest", text: "Chrome Extension", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic", text: "GitHub", external: true },
             ].map((link) => (

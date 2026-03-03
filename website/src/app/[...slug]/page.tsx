@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import type { SearchResult, AppleMusicResult } from "../api/search/route";
+import { SUPPORT_URL } from "@/lib/site";
 
 function extractVideoId(fullUrl: string): string | null {
   const raw = decodeURIComponent(fullUrl);
@@ -118,17 +119,28 @@ export default function CatchAllPage() {
               YT2Apple Music
             </span>
           </Link>
-          <Link
-            href="/"
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-            style={{
-              background: "rgba(244,63,94,0.1)",
-              border: "1px solid rgba(244,63,94,0.2)",
-              color: "#fb7185",
-            }}
-          >
-            Search more songs
-          </Link>
+          <div className="flex items-center gap-3">
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{ background: "rgba(255,213,79,0.1)", border: "1px solid rgba(255,213,79,0.2)", color: "#ffd54f" }}
+            >
+              ☕ Support
+            </a>
+            <Link
+              href="/"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{
+                background: "rgba(244,63,94,0.1)",
+                border: "1px solid rgba(244,63,94,0.2)",
+                color: "#fb7185",
+              }}
+            >
+              Search more songs
+            </Link>
+          </div>
         </div>
       </header>
 

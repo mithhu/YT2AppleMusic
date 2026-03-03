@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title:
@@ -38,15 +39,26 @@ export default function YouTubeToAppleMusicPage() {
               YT2Apple Music
             </span>
           </Link>
-          <a
-            href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-            style={{ background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.2)", color: "#fb7185" }}
-          >
-            Get Extension
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{ background: "rgba(255,213,79,0.1)", border: "1px solid rgba(255,213,79,0.2)", color: "#ffd54f" }}
+            >
+              ☕ Support
+            </a>
+            <a
+              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{ background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.2)", color: "#fb7185" }}
+            >
+              Get Extension
+            </a>
+          </div>
         </div>
       </header>
 
@@ -245,6 +257,9 @@ export default function YouTubeToAppleMusicPage() {
             <Link href="/" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               Search Songs
             </Link>
+            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
+              ☕ Buy me a coffee
+            </a>
             <a href="https://github.com/mithhu/YT2AppleMusic/releases/latest" target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               Chrome Extension
             </a>
