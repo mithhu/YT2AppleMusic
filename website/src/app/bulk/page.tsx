@@ -86,10 +86,6 @@ function BulkPageInner() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<{
-    sent: number;
-    total: number;
-  } | null>(null);
   const [results, setResults] = useState<BulkItem[] | null>(null);
   const [stats, setStats] = useState<{
     total: number;
@@ -140,7 +136,6 @@ function BulkPageInner() {
       ...videoIds.map((id) => `https://www.youtube.com/watch?v=${id}`),
       ...rawUrls,
     ];
-    setProgress({ sent: urls.length, total: urls.length });
 
     try {
       const res = await fetch("/api/bulk", {
@@ -167,7 +162,6 @@ function BulkPageInner() {
       );
     } finally {
       setLoading(false);
-      setProgress(null);
     }
   }, []);
 
@@ -289,8 +283,8 @@ function BulkPageInner() {
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Paste YouTube URLs here (one per line, max 50)...\n\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\nhttps://youtu.be/9bZkp7q19f0\nhttps://www.youtube.com/watch?v=kJQP7kiw5Fk`}
-              rows={6}
+              placeholder={`Paste YouTube URLs or a playlist link...\nhttps://www.youtube.com/playlist?list=PLxCJjC...\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ`}
+              rows={3}
               className="w-full bg-transparent px-5 py-4 text-sm text-white focus:outline-none resize-none"
               style={{ color: "#f1f5f9" }}
             />
@@ -322,14 +316,14 @@ function BulkPageInner() {
         </form>
 
         {/* Progress */}
-        {loading && progress && (
+        {loading && (
           <div className="card p-5 mb-8 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
               <span
                 className="text-xs font-medium"
                 style={{ color: "rgba(241,245,249,0.6)" }}
               >
-                Processing {progress.total} videos...
+                Finding lossless versions on Apple Music...
               </span>
               <span
                 className="text-xs"
