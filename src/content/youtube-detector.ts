@@ -687,6 +687,33 @@ class EnhancedYouTubeDetector {
     const title = videoData.title.toLowerCase();
     const channel = videoData.channel?.toLowerCase() || "";
 
+    // Non-song content: stations, streams, compilations, podcasts, etc.
+    const nonSongPatterns = [
+      /\b(radio|station|stream|streaming|live\s*stream)\b/,
+      /\b(full\s*album|full\s*concert|full\s*show|full\s*set)\b/,
+      /\b(playlist|compilation|mix\b|megamix|mashup\s*mix)\b/,
+      /\b(podcast|interview|reaction|review|documentary)\b/,
+      /\b(tutorial|lesson|how\s*to|unboxing)\b/,
+      /\b(24\/7|nonstop|non-stop|hours?\s*of)\b/,
+      /\btv\b/,
+      /\b(top\s*\d+|best\s*of|greatest\s*hits)\b/,
+      /\b(season|episode|ep\.\s*\d|part\s*\d)\b/,
+    ];
+
+    for (const pattern of nonSongPatterns) {
+      if (pattern.test(title)) {
+        console.log("🚫 Non-song content detected:", pattern.source, "in title:", videoData.title);
+        return 0;
+      }
+    }
+
+    // Title is just artist/channel name with no song info (e.g. "Radiohead TV")
+    const titleWords = title.replace(/[^a-z0-9\s]/g, "").trim().split(/\s+/);
+    if (titleWords.length <= 2 && !/-|–|—/.test(videoData.title)) {
+      console.log("🚫 Title too short to be a song:", videoData.title);
+      return 0;
+    }
+
     let score = 0;
 
     // Strong music indicators
