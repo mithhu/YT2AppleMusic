@@ -4,7 +4,7 @@ import { Suspense, useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { BulkItem } from "../api/bulk/route";
-import { SUPPORT_URL } from "@/lib/site";
+import { CHROME_EXTENSION_URL, SUPPORT_URL } from "@/lib/site";
 
 function isPlaylistUrl(text: string): boolean {
   return /[?&]list=[a-zA-Z0-9_-]+/.test(text);
@@ -234,7 +234,7 @@ function BulkPageInner() {
               ☕ Support
             </a>
             <a
-              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+              href={CHROME_EXTENSION_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"

@@ -7,7 +7,7 @@ import type {
   AppleMusicResult,
   YouTubeResult,
 } from "./api/search/route";
-import { SUPPORT_URL } from "@/lib/site";
+import { CHROME_EXTENSION_URL, SUPPORT_URL } from "@/lib/site";
 
 function getPreferredAppleMusicUrl(track: AppleMusicResult): string {
   if (typeof navigator === "undefined") {
@@ -142,7 +142,7 @@ export default function Home() {
               ☕ Support
             </a>
             <a
-              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+              href={CHROME_EXTENSION_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
@@ -461,7 +461,7 @@ export default function Home() {
                 { title: "Opens the Native Apple Music App", desc: "Other converters link to the web player, which doesn't support lossless. We open songs directly in the Apple Music app on Mac and iOS." },
                 { title: "Community-Powered Accuracy", desc: "Our database of verified song mappings is built by real listeners. Instant, accurate matches — no guessing." },
                 { title: "100% Free — No Limits, No Signup", desc: "Unlike tools that cap you at 3 searches per day or push premium plans. Unlimited searches, forever free." },
-                { title: "Chrome Extension for Auto-Detection", desc: "Install our free extension and it automatically detects songs on YouTube, opening them in Apple Music with one click.", link: "https://github.com/mithhu/YT2AppleMusic/releases/latest", linkText: "Download the extension" },
+                { title: "Chrome Extension for Auto-Detection", desc: "Install our free extension and it automatically detects songs on YouTube, opening them in Apple Music with one click.", link: CHROME_EXTENSION_URL, linkText: "Download the extension" },
               ].map((item) => (
                 <div key={item.title} className="flex gap-4 p-4 rounded-xl transition-colors" style={{ cursor: "default" }}>
                   <div className="check-icon mt-0.5">
@@ -528,7 +528,7 @@ export default function Home() {
               { href: "/bulk", text: "Bulk convert" },
               { href: "/youtube-to-apple-music", text: "Why lossless?" },
               { href: SUPPORT_URL, text: "☕ Buy me a coffee", external: true },
-              { href: "https://github.com/mithhu/YT2AppleMusic/releases/latest", text: "Chrome Extension", external: true },
+              { href: CHROME_EXTENSION_URL, text: "Chrome Extension", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic", text: "GitHub", external: true },
               { href: "/privacy", text: "Privacy" },
             ].map((link) => (

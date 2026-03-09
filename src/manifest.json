@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YT2AppleMusic - YouTube to Apple Music",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Instantly jump from YouTube music videos to Apple Music app",
 
   "permissions": ["activeTab", "storage", "tabs"],
@@ -15,7 +15,8 @@
   ],
 
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
 
   "content_scripts": [

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SUPPORT_URL } from "@/lib/site";
+import { CHROME_EXTENSION_URL, SUPPORT_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title:
@@ -50,7 +50,7 @@ export default function YouTubeToAppleMusicPage() {
               ☕ Support
             </a>
             <a
-              href="https://github.com/mithhu/YT2AppleMusic/releases/latest"
+              href={CHROME_EXTENSION_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
@@ -263,7 +263,7 @@ export default function YouTubeToAppleMusicPage() {
             <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               ☕ Buy me a coffee
             </a>
-            <a href="https://github.com/mithhu/YT2AppleMusic/releases/latest" target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
+            <a href={CHROME_EXTENSION_URL} target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               Chrome Extension
             </a>
             <a href="https://github.com/mithhu/YT2AppleMusic" target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>

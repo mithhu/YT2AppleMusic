@@ -10,3 +10,5 @@ export function getSiteUrl(): string {
 }
 
 export const SUPPORT_URL = "https://buymeacoffee.com/mithhu1";
+export const CHROME_EXTENSION_URL =
+  "https://chromewebstore.google.com/detail/djabbphjamigaibhdndcmghclinbildf";
