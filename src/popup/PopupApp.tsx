@@ -405,8 +405,8 @@ const PopupApp: React.FC = () => {
 
   const showConfirmation =
     pendingConfirmation &&
-    (!currentVideo ||
-      pendingConfirmation.youtubeId === currentVideo.videoId);
+    !!currentVideo &&
+    pendingConfirmation.youtubeId === currentVideo.videoId;
 
   return (
     <div className="w-80 min-h-96 gradient-bg text-white">

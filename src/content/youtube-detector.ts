@@ -86,6 +86,9 @@ class EnhancedYouTubeDetector {
   private observer: MutationObserver | null = null;
   private checkTimeout: number | null = null;
   private isCleanedUp: boolean = false;
+  private floatingCtaEl: HTMLDivElement | null = null;
+  private floatingCtaVideoId: string | null = null;
+  private dismissedCtaVideos: Set<string> = new Set();
 
   constructor() {
     console.log("🚀 YouTube Detector initialized on:", location.href);
@@ -312,6 +315,7 @@ class EnhancedYouTubeDetector {
       this.checkTimeout = null;
     }
 
+    this.hideFloatingCta();
     this.currentVideoData = null;
   }
 
@@ -321,6 +325,7 @@ class EnhancedYouTubeDetector {
 
       // Clear cached video data immediately when URL changes
       this.currentVideoData = null;
+      this.hideFloatingCta();
       console.log("🗑️ Cleared cached video data for new video");
 
       // Disconnect old title observer (YouTube SPA may replace the element)
@@ -353,14 +358,20 @@ class EnhancedYouTubeDetector {
   private async checkCurrentVideo(): Promise<void> {
     if (this.isCleanedUp || !this.isVideoUrl(location.href)) {
       console.log("🚫 Skipping - cleaned up or not video URL");
+      this.hideFloatingCta();
       return;
     }
 
+    const activeVideoId = this.getVideoId();
     console.log("🔍 Checking current video...");
     const videoData = await this.extractVideoData();
 
     if (!videoData) {
       console.log("❌ No video data extracted");
+      // Keep CTA visible for this same video if a transient check fails.
+      if (!activeVideoId || this.floatingCtaVideoId !== activeVideoId) {
+        this.hideFloatingCta();
+      }
       return;
     }
 
@@ -381,11 +392,21 @@ class EnhancedYouTubeDetector {
 
     if (musicProbability < 0.6) {
       console.log("⚠️ Low confidence, skipping...");
+      // Keep CTA visible for this same video; only hide when video changed.
+      if (this.floatingCtaVideoId !== videoData.videoId) {
+        this.hideFloatingCta();
+      }
       return;
     }
 
     // Add confidence score
     videoData.confidence = musicProbability;
+    if (this.isStrongSongCandidate(videoData, musicProbability)) {
+      this.showFloatingCta(videoData);
+    } else if (this.floatingCtaVideoId !== videoData.videoId) {
+      // Don't collapse CTA for same-video rechecks once shown.
+      this.hideFloatingCta();
+    }
 
     // Check if this is a new video
     if (this.isDifferentVideo(videoData)) {
@@ -689,7 +710,9 @@ class EnhancedYouTubeDetector {
 
     // Non-song content: stations, streams, compilations, podcasts, etc.
     const nonSongPatterns = [
-      /\b(radio|station|stream|streaming|live\s*stream)\b/,
+      // Keep station/stream detection, but avoid false positives like "radio version"
+      /\b(station|stream|streaming|live\s*stream)\b/,
+      /\b(radio\s+(station|stream|live))\b/,
       /\b(full\s*album|full\s*concert|full\s*show|full\s*set)\b/,
       /\b(playlist|compilation|mix\b|megamix|mashup\s*mix)\b/,
       /\b(podcast|interview|reaction|review|documentary)\b/,
@@ -992,6 +1015,207 @@ class EnhancedYouTubeDetector {
         return;
       }
     }
+  }
+
+  private showFloatingCta(videoData: MusicData): void {
+    if (this.isCleanedUp || !this.isVideoUrl(location.href)) {
+      this.hideFloatingCta();
+      return;
+    }
+
+    if (this.dismissedCtaVideos.has(videoData.videoId)) {
+      this.hideFloatingCta();
+      return;
+    }
+
+    const subtitle = `${videoData.artist} - ${videoData.songTitle}`;
+    const buttonLabel = "Open in Apple Music";
+
+    if (this.floatingCtaEl && this.floatingCtaVideoId === videoData.videoId) {
+      const subtitleEl = this.floatingCtaEl.querySelector(
+        "[data-yt2apple-subtitle]",
+      );
+      if (subtitleEl) {
+        subtitleEl.textContent = subtitle;
+      }
+      return;
+    }
+
+    this.hideFloatingCta();
+
+    const container = document.createElement("div");
+    container.id = "yt2apple-floating-cta";
+    container.style.cssText = `
+      position: fixed;
+      right: 16px;
+      top: 84px;
+      z-index: 2147483647;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: min(360px, calc(100vw - 32px));
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 113, 133, 0.35);
+      background: rgba(15, 17, 23, 0.94);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+
+    const topRow = document.createElement("div");
+    topRow.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    `;
+
+    const subtitleEl = document.createElement("div");
+    subtitleEl.setAttribute("data-yt2apple-subtitle", "true");
+    subtitleEl.textContent = subtitle;
+    subtitleEl.style.cssText = `
+      color: rgba(241, 245, 249, 0.75);
+      font-size: 11px;
+      line-height: 1.3;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    `;
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.textContent = "×";
+    closeButton.setAttribute("aria-label", "Close");
+    closeButton.style.cssText = `
+      cursor: pointer;
+      border: 1px solid rgba(241, 245, 249, 0.18);
+      background: rgba(15, 17, 23, 0.7);
+      color: rgba(241, 245, 249, 0.8);
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    `;
+    closeButton.addEventListener("click", () => {
+      this.dismissedCtaVideos.add(videoData.videoId);
+      this.hideFloatingCta();
+    });
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = buttonLabel;
+    button.style.cssText = `
+      cursor: pointer;
+      border: none;
+      outline: none;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      transition: opacity 120ms ease;
+    `;
+
+    button.addEventListener("mouseenter", () => {
+      button.style.opacity = "0.9";
+    });
+    button.addEventListener("mouseleave", () => {
+      button.style.opacity = "1";
+    });
+
+    button.addEventListener("click", async () => {
+      if (!this.currentVideoData) {
+        return;
+      }
+
+      const activeVideoId = this.getVideoId();
+      if (activeVideoId && activeVideoId !== this.currentVideoData.videoId) {
+        console.log("⚠️ CTA click ignored due to stale video data");
+        return;
+      }
+
+      const originalText = button.textContent || buttonLabel;
+      button.textContent = "Opening...";
+      button.style.opacity = "0.8";
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: "SEARCH_APPLE_MUSIC",
+          data: {
+            musicData: this.currentVideoData,
+            useNativeApp: true,
+            aiEnhanced: false,
+          },
+        } as ExtensionMessage);
+
+        if (response?.success) {
+          button.textContent = "Opened in Apple Music";
+        } else {
+          button.textContent = "Could not open - try popup";
+          console.log("❌ CTA open failed:", response?.error);
+        }
+      } catch (error) {
+        console.error("❌ CTA click message failed:", error);
+        button.textContent = "Extension unavailable";
+      } finally {
+        setTimeout(() => {
+          if (!this.isCleanedUp && this.floatingCtaEl === container) {
+            button.textContent = originalText;
+            button.style.opacity = "1";
+          }
+        }, 2000);
+      }
+    });
+
+    topRow.appendChild(subtitleEl);
+    topRow.appendChild(closeButton);
+    container.appendChild(topRow);
+    container.appendChild(button);
+    document.documentElement.appendChild(container);
+
+    this.floatingCtaEl = container;
+    this.floatingCtaVideoId = videoData.videoId;
+  }
+
+  private hideFloatingCta(): void {
+    if (this.floatingCtaEl) {
+      this.floatingCtaEl.remove();
+      this.floatingCtaEl = null;
+    }
+    this.floatingCtaVideoId = null;
+  }
+
+  private isStrongSongCandidate(videoData: MusicData, probability: number): boolean {
+    if (probability < 0.75) {
+      return false;
+    }
+
+    const title = videoData.title.toLowerCase();
+    const strongIndicators = [
+      "official music video",
+      "music video",
+      "official video",
+      "official audio",
+      "lyric video",
+      "lyrics",
+      "audio",
+      "vevo",
+    ];
+
+    const hasStrongIndicator = strongIndicators.some((indicator) =>
+      title.includes(indicator),
+    );
+    const hasArtistSongFormat = /[-–—|•]/.test(videoData.title);
+
+    return hasStrongIndicator || hasArtistSongFormat;
   }
 
   // Supabase handler methods for content script operations
