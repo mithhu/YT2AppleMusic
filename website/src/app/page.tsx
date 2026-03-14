@@ -527,6 +527,7 @@ export default function Home() {
             {[
               { href: "/bulk", text: "Bulk convert" },
               { href: "/youtube-to-apple-music", text: "Why lossless?" },
+              { href: "/youtube-music-to-apple-music", text: "YT Music Transfer" },
               { href: SUPPORT_URL, text: "☕ Buy me a coffee", external: true },
               { href: CHROME_EXTENSION_URL, text: "Chrome Extension", external: true },
               { href: "https://github.com/mithhu/YT2AppleMusic", text: "GitHub", external: true },

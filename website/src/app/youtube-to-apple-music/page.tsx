@@ -260,6 +260,9 @@ export default function YouTubeToAppleMusicPage() {
             <Link href="/bulk" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               Bulk Convert
             </Link>
+            <Link href="/youtube-music-to-apple-music" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
+              YT Music Transfer
+            </Link>
             <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-xs transition-colors" style={{ color: "rgba(241,245,249,0.35)" }}>
               ☕ Buy me a coffee
             </a>
